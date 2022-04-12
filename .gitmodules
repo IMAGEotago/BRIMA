@@ -1,0 +1,3 @@
+[submodule "HMeta-d"]
+	path = HMeta-d
+	url = https://github.com/metacoglab/HMeta-d.git
