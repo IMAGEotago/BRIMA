@@ -67,6 +67,11 @@ options.variables.summarySheet = {'AGE', 'GENDER', 'ANXIETY-S', 'ANXIETY-T', 'DE
 % Specify data analysis output
 options.names.output = fullfile(options.paths.analysis, 'BRIMA-output.mat');
 
+% Specify figure outputs
+options.names.figure1output = fullfile(options.paths.figures, 'BRIMA-figure1');
+options.names.figure2output = fullfile(options.paths.figures, 'BRIMA-figure2');
+options.names.figure3output = fullfile(options.paths.figures, 'BRIMA-figure3');
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % EXTRA SETTINGS
