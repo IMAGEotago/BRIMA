@@ -1,8 +1,8 @@
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% MAKE FIGURE FOR ANXIETY SLOPES
+% MAKE FIGURE FOR STATE ANXIETY SLOPES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Anxiety slopes
+% State anxiety slopes
 figure
     set(gcf, 'Position', [0 0 500 800]);
     % Sensitivity
@@ -47,7 +47,7 @@ figure
     set(gca, 'FontSize', 14)
     set(get(ax3,'YLabel'), 'String', 'Avg. Confidence'); 
     str = {['Beta = ', sprintf('%.2f', FDT.fit.SA.sensibility.coefficients(2)), '*']};
-    text(3, 4, str, 'FontSize', 14, 'Color', 'r');
+    text(3, 4, str, 'FontSize', 12, 'Color', 'r');
     title('METACOGNITIVE BIAS', 'fontsize', 18);
     % MRatio
     ax4 = subplot(4,1,4);
@@ -63,14 +63,14 @@ figure
     set(gca, 'FontSize', 14)
     set(get(ax4,'YLabel'), 'String', 'logMratio'); 
     set(get(ax4,'XLabel'), 'String', 'Std. State Anxiety score');
-    str = {['Beta = ', sprintf('%.2f', FDT.fit.SA.mratio.modelFit.mu_beta1), '*']};
-    text(3, -0.75, str, 'FontSize', 14, 'Color', 'r');
+    str = {['Beta = ', sprintf('%.2f', FDT.fit.SA.mratio.modelFit.mu_beta1), '#']};
+    text(3, -0.75, str, 'FontSize', 12, 'Color', 'r');
     title('INSIGHT', 'fontsize', 18);
-    print(FDT.settings.names.figure1output, '-dtiff')
+    print(FDT.settings.names.figure.SA1, '-dtiff')
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% MAKE FIGURE FOR GENDER DIFFERENCES
+% MAKE FIGURE FOR STATE ANXIETY GENDER DIFFERENCES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Specify colours
@@ -115,11 +115,11 @@ figure;
     ylim([0.5, 1.5]);
     ylabel('Mratio', 'FontSize', 14);
     title('INSIGHT', 'FontSize', 18);
-    print(FDT.settings.names.figure2output, '-dtiff');
+    print(FDT.settings.names.figure.SA2, '-dtiff');
     
     
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% MAKE FIGURE FOR ANXIETY SLOPES AND GENDER INTERACTIONS
+% MAKE FIGURE FOR STATE ANXIETY SLOPES AND GENDER INTERACTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Anxiety slopes
@@ -127,67 +127,69 @@ figure
     set(gcf, 'Position', [0 0 500 800]);
     % Sensitivity: gender
     ax1 = subplot(4,1,1);
-    scatter(ax1, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 1),1), FDT.data.summary.avgFilter(FDT.GLMs.SAGI(:,2) == 1), 25, 'filled', 'MarkerFaceColor', [0.3 0.3 0.3]);
-    hold on
     scatter(ax1, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 0),1), FDT.data.summary.avgFilter(FDT.GLMs.SAGI(:,2) == 0), 25, 'filled', 'MarkerFaceColor', [0.7 0.7 0.7]);
+    hold on
+    scatter(ax1, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 1),1), FDT.data.summary.avgFilter(FDT.GLMs.SAGI(:,2) == 1), 25, 'filled', 'MarkerFaceColor', [0.3 0.3 0.3]);
     box on
     xlim(ax1, [-2 5])
     ylim(ax1, [0 10])
-    rf1 = refline((FDT.fit.SAG.sensitivity.coefficients(2) + FDT.fit.SAG.sensitivity.coefficients(4)), (FDT.fit.SAG.sensitivity.coefficients(1) + FDT.fit.SAG.sensitivity.coefficients(3)));
+    rf1 = refline(FDT.fit.SAG.sensitivity.SAGI.coefficients(2), FDT.fit.SAG.sensitivity.SAGI.coefficients(1));
     rf1.LineStyle = '--';
-    rf1.Color = [0.3 0.3 0.3];
+    rf1.Color = [0.7 0.7 0.7];
     rf1.LineWidth = 2;
-    rf2 = refline(FDT.fit.SAG.sensitivity.coefficients(2), FDT.fit.SAG.sensitivity.coefficients(1));
+    rf2 = refline((FDT.fit.SAG.sensitivity.SAGI.coefficients(2) + FDT.fit.SAG.sensitivity.SAGI.coefficients(4)), (FDT.fit.SAG.sensitivity.SAGI.coefficients(1) + FDT.fit.SAG.sensitivity.SAGI.coefficients(3)));
     rf2.LineStyle = '--';
-    rf2.Color = [0.7 0.7 0.7];
+    rf2.Color = [0.3 0.3 0.3];
     rf2.LineWidth = 2;
     set(gca, 'FontSize', 14)
     set(get(ax1,'YLabel'), 'String', 'Threshold filter'); 
     title('SENSITIVITY', 'fontsize', 18);
-    lgd = legend('Women','Men');
+    lgd = legend('Men','Women');
     lgd.Location = 'east';
     % Decision bias: gender
     ax2 = subplot(4,1,2);
-    scatter(ax2, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 1),1), FDT.fit.SAG.mratio.SAGI.modelFit.c1(FDT.GLMs.SAGI(:,2) == 1), 25, 'filled', 'MarkerFaceColor', [0.3 0.3 0.3]);
-    hold on
     scatter(ax2, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 0),1), FDT.fit.SAG.mratio.SAGI.modelFit.c1(FDT.GLMs.SAGI(:,2) == 0), 25, 'filled', 'MarkerFaceColor', [0.7 0.7 0.7]);
+    hold on
+    scatter(ax2, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 1),1), FDT.fit.SAG.mratio.SAGI.modelFit.c1(FDT.GLMs.SAGI(:,2) == 1), 25, 'filled', 'MarkerFaceColor', [0.3 0.3 0.3]);
     box on
     xlim(ax2, [-2 5])
     ylim(ax2, [-1.5 1.5])
-    rf1 = refline((FDT.fit.SAG.bias.coefficients(2) + FDT.fit.SAG.bias.coefficients(4)), (FDT.fit.SAG.bias.coefficients(1) + FDT.fit.SAG.bias.coefficients(3)));
+    rf1 = refline(FDT.fit.SAG.bias.SAGI.coefficients(2), FDT.fit.SAG.bias.SAGI.coefficients(1));
     rf1.LineStyle = '--';
-    rf1.Color = [0.3 0.3 0.3];
+    rf1.Color = [0.7 0.7 0.7];
     rf1.LineWidth = 2;
-    rf2 = refline(FDT.fit.SAG.bias.coefficients(2), FDT.fit.SAG.bias.coefficients(1));
+    rf2 = refline((FDT.fit.SAG.bias.SAGI.coefficients(2) + FDT.fit.SAG.bias.SAGI.coefficients(4)), (FDT.fit.SAG.bias.SAGI.coefficients(1) + FDT.fit.SAG.bias.SAGI.coefficients(3)));
     rf2.LineStyle = '--';
-    rf2.Color = [0.7 0.7 0.7];
+    rf2.Color = [0.3 0.3 0.3];
     rf2.LineWidth = 2;
     set(gca, 'FontSize', 14)
     set(get(ax2,'YLabel'), 'String', 'Decision bias  \it c'); 
     title('DECISION BIAS', 'fontsize', 18);
-    lgd = legend('Women','Men');
+    lgd = legend('Men','Women');
     lgd.Location = 'southeast';
     % Metacognitive bias: gender
     ax3 = subplot(4,1,3);
-    scatter(ax3, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 1),1), FDT.data.summary.avgConfidence(FDT.GLMs.SAGI(:,2) == 1), 25, 'filled', 'MarkerFaceColor', [0.3 0.3 0.3]);
-    hold on
     scatter(ax3, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 0),1), FDT.data.summary.avgConfidence(FDT.GLMs.SAGI(:,2) == 0), 25, 'filled', 'MarkerFaceColor', [0.7 0.7 0.7]);
+    hold on
+    scatter(ax3, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 1),1), FDT.data.summary.avgConfidence(FDT.GLMs.SAGI(:,2) == 1), 25, 'filled', 'MarkerFaceColor', 'r');
     box on
     xlim(ax3, [-2 5])
-    ylim(ax3, [2 11])
-    rf1 = refline((FDT.fit.SAG.sensibility.coefficients(2) + FDT.fit.SAG.sensibility.coefficients(4)), (FDT.fit.SAG.sensibility.coefficients(1) + FDT.fit.SAG.sensibility.coefficients(3)));
+    ylim(ax3, [-2 11])
+    rf1 = refline(FDT.fit.SAG.sensibility.SAGI.coefficients(2), FDT.fit.SAG.sensibility.SAGI.coefficients(1));
     rf1.LineStyle = '--';
-    rf1.Color = [0.3 0.3 0.3];
+    rf1.Color = [0.7 0.7 0.7];
     rf1.LineWidth = 2;
-    rf2 = refline(FDT.fit.SAG.sensibility.coefficients(2), FDT.fit.SAG.sensibility.coefficients(1));
+    rf2 = refline((FDT.fit.SAG.sensibility.SAGI.coefficients(2) + FDT.fit.SAG.sensibility.SAGI.coefficients(4)), (FDT.fit.SAG.sensibility.SAGI.coefficients(1) + FDT.fit.SAG.sensibility.SAGI.coefficients(3)));
     rf2.LineStyle = '--';
-    rf2.Color = [0.7 0.7 0.7];
+    rf2.Color = 'r';
     rf2.LineWidth = 2;
     set(gca, 'FontSize', 14)
     set(get(ax3,'YLabel'), 'String', 'Avg. Confidence'); 
+    str = {['W Beta = ', sprintf('%.2f', (FDT.fit.SAG.sensibility.SAGI.coefficients(2) + FDT.fit.SAG.sensibility.SAGI.coefficients(4))), '*']};
+    text(3, 2, str, 'FontSize', 12, 'Color', 'r');
     title('METACOGNITIVE BIAS', 'fontsize', 18);
-    lgd = legend('Women','Men');
-    lgd.Location = 'southeast';
+    lgd = legend('Men','Women');
+    lgd.Location = 'southwest';
     % MRatio: gender
     ax4 = subplot(4,1,4);
     scatter(ax4, FDT.GLMs.SAGI((FDT.GLMs.SAGI(:,2) == 0),1), log(FDT.fit.SAG.mratio.SAGI.modelFit.Mratio(FDT.GLMs.SAGI(:,2) == 0)), 25, 'filled', 'MarkerFaceColor', [0.7 0.7 0.7]);
@@ -207,10 +209,12 @@ figure
     set(gca, 'FontSize', 14)
     set(get(ax4,'YLabel'), 'String', 'logMratio'); 
     set(get(ax4,'XLabel'), 'String', 'Std. State Anxiety score');
-    str = {['Beta = ', sprintf('%.2f', (FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta1 + FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta3)), '*']};
-    text(3, -0.5, str, 'FontSize', 14, 'Color', 'r');
+    str1 = {['W Beta = ', sprintf('%.2f', (FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta1 + FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta3)), '#']};
+    text(3, -0.3, str1, 'FontSize', 12, 'Color', 'r');
+    str2 = {['W>M Beta = ', sprintf('%.2f', (FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta3)), '#']};
+    text(3, -0.5, str2, 'FontSize', 12, 'Color', 'r');
     title('INSIGHT', 'fontsize', 18);
     lgd = legend('Men','Women');
     lgd.Location = 'southwest';
-    print(FDT.settings.names.figure3output, '-dtiff')
+    print(FDT.settings.names.figure.SA3, '-dtiff')
 

@@ -150,25 +150,23 @@ FDT.GLMs.SA(:,1) = zscore(FDT.GLMs.SA(:,1));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Fit the HMeta-d model for mratio
-% FDT.fit.SA.mratio.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SA.nR_S1, FDT.data.trials2counts.SA.nR_S2, FDT.GLMs.SA', FDT.settings.fit.mcmc_params);
-FDT.fit.SA.mratio.HDI.interval = [0.007 0.993];
-FDT.fit.SA.mratio.HDI.interval_unc = [0.025 0.975];
-FDT.fit.SA.mratio.HDI.anx_HDI = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.987);
-FDT.fit.SA.mratio.HDI.anx_HDI_unc = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.95);
-FDT.fit.SA.mratio.HDI.anx_quantile = quantile(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SA.mratio.HDI.interval);
-FDT.fit.SA.mratio.HDI.anx_quantile_unc = quantile(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SA.mratio.HDI.interval_unc);
-FDT.fit.SA.mratio.HDI.intercept_HDI = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_logMratio(:), 0.987);
-FDT.fit.SA.mratio.HDI.intercept_HDI_unc = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
-FDT.fit.SA.mratio.HDI.oneTail.interval = [0.0 0.987];
-FDT.fit.SA.mratio.HDI.oneTail.interval_unc = [0.0 0.95];
-FDT.fit.SA.mratio.HDI.oneTail.anx_inner = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), 1-0.026);
-FDT.fit.SA.mratio.HDI.oneTail.anx_outer = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.SA.mratio.HDI.oneTail.anx = [FDT.fit.SA.mratio.HDI.oneTail.anx_outer(1) FDT.fit.SA.mratio.HDI.oneTail.anx_inner(2)];
-FDT.fit.SA.mratio.HDI.oneTail.anx_inner_unc = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9);
-FDT.fit.SA.mratio.HDI.oneTail.anx_outer_unc = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.SA.mratio.HDI.oneTail.anx_unc = [FDT.fit.SA.mratio.HDI.oneTail.anx_outer_unc(1) FDT.fit.SA.mratio.HDI.oneTail.anx_inner_unc(2)];
-FDT.fit.SA.mratio.HDI.oneTail.anx_quantile = quantile(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SA.mratio.HDI.oneTail.interval);
-FDT.fit.SA.mratio.HDI.oneTail.anx_quantile_unc = quantile(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SA.mratio.HDI.oneTail.interval_unc);
+FDT.fit.SA.mratio.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SA.nR_S1, FDT.data.trials2counts.SA.nR_S2, FDT.GLMs.SA', FDT.settings.fit.mcmc_params);
+FDT.fit.SA.mratio.HDI.anx_corr = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.987);
+FDT.fit.SA.mratio.HDI.anx = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.SA.mratio.HDI.intercept = calc_HDI(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
+% Plot the HDI for checking
+figure;
+set(gcf, 'Position', [200 200 400 300])
+histogram(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_beta1(:));
+hold on
+xline(FDT.fit.SA.mratio.modelFit.mu_beta1, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SA.mratio.HDI.anx(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SA.mratio.HDI.anx(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('State anxiety Beta HDI');
+set(gca, 'FontSize', 14)
 
 % Fit the linear model for sensitivity (filter number)
 filters_SA = FDT.data.summary.avgFilter;
@@ -196,371 +194,20 @@ FDT.fit.SA.dPrime.pvalues = FDT.fit.SA.dPrime.modelFit.Coefficients.pValue(:);
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CREATE THE TA GLM
+% CREATE THE SAG GLM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Find the state anxiety variable
-idxTA = find(strcmp(FDT.settings.variables.summarySheet, 'ANXIETY-T'));
-
-% Create the GLM for trait anxiety (with regressors for study location)
-TA = [];
-for study = 1:4
-    TA = [TA; FDT.data.raw.extra{study}(:,idxTA)];
-end
-FDT.GLMs.TA = [TA, zeros(length(TA),3)];
-FDT.GLMs.TA(1:length(FDT.data.IDs{1}),2:4) = -1;
-FDT.GLMs.TA(length(FDT.data.IDs{1})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2}),2) = 1;
-FDT.GLMs.TA(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3}),3) = 1;
-FDT.GLMs.TA(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+length(FDT.data.IDs{4}),4) = 1;
-
-% Check for missing values and remove from GLM and FDT data
-[idxNaN_row_TA col] = find(isnan(TA));
-FDT.GLMs.TA(idxNaN_row_TA,:) = [];
-FDT.data.trials2counts.TA.nR_S1 = FDT.data.trials2counts.nR_S1;
-FDT.data.trials2counts.TA.nR_S2 = FDT.data.trials2counts.nR_S2;
-FDT.data.trials2counts.TA.nR_S1(idxNaN_row_TA) = [];
-FDT.data.trials2counts.TA.nR_S2(idxNaN_row_TA) = [];
-
-% Zscore variables
-FDT.GLMs.TA(:,1) = zscore(FDT.GLMs.TA(:,1));
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% FIT THE TA MODELS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% % Fit the HMeta-d model for mratio
-% FDT.fit.TA.mratio.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.TA.nR_S1, FDT.data.trials2counts.TA.nR_S2, FDT.GLMs.TA', FDT.settings.fit.mcmc_params);
-% FDT.fit.TA.mratio.HDI.interval = [0.007 0.993];
-% FDT.fit.TA.mratio.HDI.interval_unc = [0.025 0.975];
-% FDT.fit.TA.mratio.HDI.anx_HDI = calc_HDI(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.987);
-% FDT.fit.TA.mratio.HDI.anx_HDI_unc = calc_HDI(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.95);
-% FDT.fit.TA.mratio.HDI.anx_quantile = quantile(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TA.mratio.HDI.interval);
-% FDT.fit.TA.mratio.HDI.anx_quantile_unc = quantile(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TA.mratio.HDI.interval_unc);
-% FDT.fit.TA.mratio.HDI.oneTail.interval = [0.0 0.987];
-% FDT.fit.TA.mratio.HDI.oneTail.interval_unc = [0.0 0.95];
-% FDT.fit.TA.mratio.HDI.oneTail.anx_inner = calc_HDI(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), 1-0.026);
-% FDT.fit.TA.mratio.HDI.oneTail.anx_outer = calc_HDI(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-% FDT.fit.TA.mratio.HDI.oneTail.anx = [FDT.fit.TA.mratio.HDI.oneTail.anx_outer(1) FDT.fit.TA.mratio.HDI.oneTail.anx_inner(2)];
-% FDT.fit.TA.mratio.HDI.oneTail.anx_inner_unc = calc_HDI(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9);
-% FDT.fit.TA.mratio.HDI.oneTail.anx_outer_unc = calc_HDI(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-% FDT.fit.TA.mratio.HDI.oneTail.anx_unc = [FDT.fit.TA.mratio.HDI.oneTail.anx_outer_unc(1) FDT.fit.TA.mratio.HDI.oneTail.anx_inner_unc(2)];
-% FDT.fit.TA.mratio.HDI.oneTail.anx_quantile = quantile(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TA.mratio.HDI.oneTail.interval);
-% FDT.fit.TA.mratio.HDI.oneTail.anx_quantile_unc = quantile(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TA.mratio.HDI.oneTail.interval_unc);
-% 
-% % Fit the linear model for sensitivity (filter number)
-% filters_TA = FDT.data.summary.avgFilter;
-% filters_TA(idxNaN_row_TA) = [];
-% FDT.fit.TA.sensitivity.modelFit = fitlm(FDT.GLMs.TA, filters_TA);
-% FDT.fit.TA.sensitivity.coefficients = FDT.fit.TA.sensitivity.modelFit.Coefficients.Estimate(:);
-% FDT.fit.TA.sensitivity.pvalues = FDT.fit.TA.sensitivity.modelFit.Coefficients.pValue(:);
-% 
-% % Fit the linear model for sensibility (confidence)
-% confidence_TA = FDT.data.summary.avgConfidence;
-% confidence_TA(idxNaN_row_TA) = [];
-% FDT.fit.TA.sensibility.modelFit = fitlm(FDT.GLMs.TA, confidence_TA);
-% FDT.fit.TA.sensibility.coefficients = FDT.fit.TA.sensibility.modelFit.Coefficients.Estimate(:);
-% FDT.fit.TA.sensibility.pvalues = FDT.fit.TA.sensibility.modelFit.Coefficients.pValue(:);
-% 
-% % Fit the linear model for decision bias
-% FDT.fit.TA.bias.modelFit = fitlm(FDT.GLMs.TA, FDT.fit.TA.mratio.modelFit.c1);
-% FDT.fit.TA.bias.coefficients = FDT.fit.TA.bias.modelFit.Coefficients.Estimate(:);
-% FDT.fit.TA.bias.pvalues = FDT.fit.TA.bias.modelFit.Coefficients.pValue(:);
-% 
-% % Fit the linear model for d' (sanity check)
-% FDT.fit.TA.dPrime.modelFit = fitlm(FDT.GLMs.TA, FDT.fit.TA.mratio.modelFit.d1);
-% FDT.fit.TA.dPrime.coefficients = FDT.fit.TA.dPrime.modelFit.Coefficients.Estimate(:);
-% FDT.fit.TA.dPrime.pvalues = FDT.fit.TA.dPrime.modelFit.Coefficients.pValue(:);
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CREATE THE DEPRESSION GLM
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Find the depression variable
-idxDep = find(strcmp(FDT.settings.variables.summarySheet, 'DEPRESSION'));
-
-% Create the GLM for depression (with regressors for study location)
-Dep = [];
-for study = 1:4
-    Dep = [Dep; FDT.data.raw.extra{study}(:,idxDep)];
-end
-FDT.GLMs.Dep = [Dep, zeros(length(Dep),3)];
-FDT.GLMs.Dep(1:length(FDT.data.IDs{1}),2:4) = -1;
-FDT.GLMs.Dep(length(FDT.data.IDs{1})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2}),2) = 1;
-FDT.GLMs.Dep(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3}),3) = 1;
-FDT.GLMs.Dep(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+length(FDT.data.IDs{4}),4) = 1;
-
-% Check for missing values and remove from GLM and FDT data
-[idxNaN_row_Dep col] = find(isnan(Dep));
-FDT.GLMs.Dep(idxNaN_row_Dep,:) = [];
-FDT.data.trials2counts.Dep.nR_S1 = FDT.data.trials2counts.nR_S1;
-FDT.data.trials2counts.Dep.nR_S2 = FDT.data.trials2counts.nR_S2;
-FDT.data.trials2counts.Dep.nR_S1(idxNaN_row_Dep) = [];
-FDT.data.trials2counts.Dep.nR_S2(idxNaN_row_Dep) = [];
-
-% Zscore variables
-FDT.GLMs.Dep(:,1) = zscore(FDT.GLMs.Dep(:,1));
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% FIT THE DEPRESSION MODELS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% % Fit the HMeta-d model for mratio
-% FDT.fit.Dep.mratio.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.Dep.nR_S1, FDT.data.trials2counts.Dep.nR_S2, FDT.GLMs.Dep', FDT.settings.fit.mcmc_params);
-% FDT.fit.Dep.mratio.HDI.interval = [0.007 0.993];
-% FDT.fit.Dep.mratio.HDI.interval_unc = [0.025 0.975];
-% FDT.fit.Dep.mratio.HDI.dep_HDI = calc_HDI(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.987);
-% FDT.fit.Dep.mratio.HDI.dep_HDI_unc = calc_HDI(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.95);
-% FDT.fit.Dep.mratio.HDI.dep_quantile = quantile(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.Dep.mratio.HDI.interval);
-% FDT.fit.Dep.mratio.HDI.dep_quantile_unc = quantile(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.Dep.mratio.HDI.interval_unc);
-% FDT.fit.Dep.mratio.HDI.oneTail.interval = [0.0 0.987];
-% FDT.fit.Dep.mratio.HDI.oneTail.interval_unc = [0.0 0.95];
-% FDT.fit.Dep.mratio.HDI.oneTail.dep_inner = calc_HDI(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), 1-0.026);
-% FDT.fit.Dep.mratio.HDI.oneTail.dep_outer = calc_HDI(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-% FDT.fit.Dep.mratio.HDI.oneTail.dep = [FDT.fit.Dep.mratio.HDI.oneTail.dep_outer(1) FDT.fit.Dep.mratio.HDI.oneTail.dep_inner(2)];
-% FDT.fit.Dep.mratio.HDI.oneTail.dep_inner_unc = calc_HDI(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9);
-% FDT.fit.Dep.mratio.HDI.oneTail.dep_outer_unc = calc_HDI(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-% FDT.fit.Dep.mratio.HDI.oneTail.dep_unc = [FDT.fit.Dep.mratio.HDI.oneTail.dep_outer_unc(1) FDT.fit.Dep.mratio.HDI.oneTail.dep_inner_unc(2)];
-% FDT.fit.Dep.mratio.HDI.oneTail.dep_quantile = quantile(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.Dep.mratio.HDI.oneTail.interval);
-% FDT.fit.Dep.mratio.HDI.oneTail.dep_quantile_unc = quantile(FDT.fit.Dep.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.Dep.mratio.HDI.oneTail.interval_unc);
-% 
-% % Fit the linear model for sensitivity (filter number)
-% filters_Dep = FDT.data.summary.avgFilter;
-% filters_Dep(idxNaN_row_Dep) = [];
-% FDT.fit.Dep.sensitivity.modelFit = fitlm(FDT.GLMs.Dep, filters_Dep);
-% FDT.fit.Dep.sensitivity.coefficients = FDT.fit.Dep.sensitivity.modelFit.Coefficients.Estimate(:);
-% FDT.fit.Dep.sensitivity.pvalues = FDT.fit.Dep.sensitivity.modelFit.Coefficients.pValue(:);
-% 
-% % Fit the linear model for sensibility (confidence)
-% confidence_Dep = FDT.data.summary.avgConfidence;
-% confidence_Dep(idxNaN_row_Dep) = [];
-% FDT.fit.Dep.sensibility.modelFit = fitlm(FDT.GLMs.Dep, confidence_Dep);
-% FDT.fit.Dep.sensibility.coefficients = FDT.fit.Dep.sensibility.modelFit.Coefficients.Estimate(:);
-% FDT.fit.Dep.sensibility.pvalues = FDT.fit.Dep.sensibility.modelFit.Coefficients.pValue(:);
-% 
-% % Fit the linear model for decision bias
-% FDT.fit.Dep.bias.modelFit = fitlm(FDT.GLMs.Dep, FDT.fit.Dep.mratio.modelFit.c1);
-% FDT.fit.Dep.bias.coefficients = FDT.fit.Dep.bias.modelFit.Coefficients.Estimate(:);
-% FDT.fit.Dep.bias.pvalues = FDT.fit.Dep.bias.modelFit.Coefficients.pValue(:);
-% 
-% % Fit the linear model for d' (sanity check)
-% FDT.fit.Dep.dPrime.modelFit = fitlm(FDT.GLMs.Dep, FDT.fit.Dep.mratio.modelFit.d1);
-% FDT.fit.Dep.dPrime.coefficients = FDT.fit.Dep.dPrime.modelFit.Coefficients.Estimate(:);
-% FDT.fit.Dep.dPrime.pvalues = FDT.fit.Dep.dPrime.modelFit.Coefficients.pValue(:);
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CREATE THE SAD GLM
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Find the depression variable
-idxDep = find(strcmp(FDT.settings.variables.summarySheet, 'DEPRESSION'));
-
-% Create the depression variable and create GLM matrix
-Dep = [];
-for study = 1:4
-    Dep = [Dep; FDT.data.raw.extra{study}(:,idxDep)];
-end
-FDT.GLMs.SAD(:,1) = SA;
-FDT.GLMs.SAD(:,2) = Dep;
-FDT.GLMs.SAD(1:length(FDT.data.IDs{1}),3:5) = -1;
-FDT.GLMs.SAD(length(FDT.data.IDs{1})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2}),3) = 1;
-FDT.GLMs.SAD(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3}),4) = 1;
-FDT.GLMs.SAD(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+length(FDT.data.IDs{4}),5) = 1;
-
-% Check for missing values and remove from GLM and FDT data
-[idxNaN_row_SAD col] = find(isnan(FDT.GLMs.SAD));
-FDT.GLMs.SAD(idxNaN_row_SAD,:) = [];
-FDT.data.trials2counts.SAD.nR_S1 = FDT.data.trials2counts.nR_S1;
-FDT.data.trials2counts.SAD.nR_S2 = FDT.data.trials2counts.nR_S2;
-FDT.data.trials2counts.SAD.nR_S1(idxNaN_row_SAD) = [];
-FDT.data.trials2counts.SAD.nR_S2(idxNaN_row_SAD) = [];
-
-% Zscore variables
-FDT.GLMs.SAD(:,1) = zscore(FDT.GLMs.SAD(:,1));
-FDT.GLMs.SAD(:,2) = zscore(FDT.GLMs.SAD(:,2));
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% FIT THE SAD MODELS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% % Fit the HMeta-d model for mratio
-% FDT.fit.SAD.mratio.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SAD.nR_S1, FDT.data.trials2counts.SAD.nR_S2, FDT.GLMs.SAD', FDT.settings.fit.mcmc_params);
-% FDT.fit.SAD.mratio.HDI.interval = [0.007 0.993];
-% FDT.fit.SAD.mratio.HDI.interval_unc = [0.025 0.975];
-% FDT.fit.SAD.mratio.HDI.anx_HDI = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.987);
-% FDT.fit.SAD.mratio.HDI.anx_HDI_unc = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.95);
-% FDT.fit.SAD.mratio.HDI.anx_quantile = quantile(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAD.mratio.HDI.interval);
-% FDT.fit.SAD.mratio.HDI.anx_quantile_unc = quantile(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAD.mratio.HDI.interval_unc);
-% FDT.fit.SAD.mratio.HDI.dep_HDI = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.987);
-% FDT.fit.SAD.mratio.HDI.dep_HDI_unc = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.95);
-% FDT.fit.SAD.mratio.HDI.dep_quantile = quantile(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAD.mratio.HDI.interval);
-% FDT.fit.SAD.mratio.HDI.dep_quantile_unc = quantile(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAD.mratio.HDI.interval_unc);
-% FDT.fit.SAD.mratio.HDI.anxVdep_HDI = calc_HDI((FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), 0.987);
-% FDT.fit.SAD.mratio.HDI.anxVdep_HDI_unc = calc_HDI((FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
-% FDT.fit.SAD.mratio.HDI.anxVdep_quantile = quantile((FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.SAD.mratio.HDI.interval);
-% FDT.fit.SAD.mratio.HDI.anxVdep_quantile_unc = quantile((FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.SAD.mratio.HDI.interval_unc);
-% FDT.fit.SAD.mratio.HDI.avgAnxDep_HDI = calc_HDI((FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), 0.987);
-% FDT.fit.SAD.mratio.HDI.avgAnxDep_HDI_unc = calc_HDI((FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
-% FDT.fit.SAD.mratio.HDI.avgAnxDep_quantile = quantile((FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.SAD.mratio.HDI.interval);
-% FDT.fit.SAD.mratio.HDI.avgAnxDep_quantile_unc = quantile((FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.SAD.mratio.HDI.interval_unc);
-% FDT.fit.SAD.mratio.HDI.oneTail.interval = [0.0 0.987];
-% FDT.fit.SAD.mratio.HDI.oneTail.interval_unc = [0.0 0.95];
-% FDT.fit.SAD.mratio.HDI.oneTail.anx_inner = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 1-0.026);
-% FDT.fit.SAD.mratio.HDI.oneTail.anx_outer = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-% FDT.fit.SAD.mratio.HDI.oneTail.anx = [FDT.fit.SAD.mratio.HDI.oneTail.anx_outer(1) FDT.fit.SAD.mratio.HDI.oneTail.anx_inner(2)];
-% FDT.fit.SAD.mratio.HDI.oneTail.anx_inner_unc = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9);
-% FDT.fit.SAD.mratio.HDI.oneTail.anx_outer_unc = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-% FDT.fit.SAD.mratio.HDI.oneTail.anx_unc = [FDT.fit.SAD.mratio.HDI.oneTail.anx_outer_unc(1) FDT.fit.SAD.mratio.HDI.oneTail.anx_inner_unc(2)];
-% FDT.fit.SAD.mratio.HDI.oneTail.anx_quantile = quantile(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAD.mratio.HDI.oneTail.interval);
-% FDT.fit.SAD.mratio.HDI.oneTail.anx_quantile_unc = quantile(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAD.mratio.HDI.oneTail.interval_unc);
-% FDT.fit.SAD.mratio.HDI.oneTail.dep_inner = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 1-0.026);
-% FDT.fit.SAD.mratio.HDI.oneTail.dep_outer = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-% FDT.fit.SAD.mratio.HDI.oneTail.dep = [FDT.fit.SAD.mratio.HDI.oneTail.dep_outer(1) FDT.fit.SAD.mratio.HDI.oneTail.dep_inner(2)];
-% FDT.fit.SAD.mratio.HDI.oneTail.dep_inner_unc = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.9);
-% FDT.fit.SAD.mratio.HDI.oneTail.dep_outer_unc = calc_HDI(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-% FDT.fit.SAD.mratio.HDI.oneTail.dep_unc = [FDT.fit.SAD.mratio.HDI.oneTail.dep_outer_unc(1) FDT.fit.SAD.mratio.HDI.oneTail.dep_inner_unc(2)];
-% FDT.fit.SAD.mratio.HDI.oneTail.dep_quantile = quantile(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAD.mratio.HDI.oneTail.interval);
-% FDT.fit.SAD.mratio.HDI.oneTail.dep_quantile_unc = quantile(FDT.fit.SAD.mratio.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAD.mratio.HDI.oneTail.interval_unc);
-% 
-% % Fit the linear model for sensitivity (filter number)
-% filters_SAD = FDT.data.summary.avgFilter;
-% filters_SAD(idxNaN_row_SAD) = [];
-% FDT.fit.SAD.sensitivity.modelFit = fitlm(FDT.GLMs.SAD, filters_SAD);
-% FDT.fit.SAD.sensitivity.coefficients = FDT.fit.SAD.sensitivity.modelFit.Coefficients.Estimate(:);
-% FDT.fit.SAD.sensitivity.pvalues = FDT.fit.SAD.sensitivity.modelFit.Coefficients.pValue(:);
-% 
-% % Fit the linear model for sensibility (confidence)
-% confidence_SAD = FDT.data.summary.avgConfidence;
-% confidence_SAD(idxNaN_row_SAD) = [];
-% FDT.fit.SAD.sensibility.modelFit = fitlm(FDT.GLMs.SAD, confidence_SAD);
-% FDT.fit.SAD.sensibility.coefficients = FDT.fit.SAD.sensibility.modelFit.Coefficients.Estimate(:);
-% FDT.fit.SAD.sensibility.pvalues = FDT.fit.SAD.sensibility.modelFit.Coefficients.pValue(:);
-% 
-% % Fit the linear model for decision bias
-% FDT.fit.SAD.bias.modelFit = fitlm(FDT.GLMs.SAD, FDT.fit.SAD.mratio.modelFit.c1);
-% FDT.fit.SAD.bias.coefficients = FDT.fit.SAD.bias.modelFit.Coefficients.Estimate(:);
-% FDT.fit.SAD.bias.pvalues = FDT.fit.SAD.bias.modelFit.Coefficients.pValue(:);
-% 
-% % Fit the linear model for d' (sanity check)
-% FDT.fit.SAD.dPrime.modelFit = fitlm(FDT.GLMs.SAD, FDT.fit.SAD.mratio.modelFit.d1);
-% FDT.fit.SAD.dPrime.coefficients = FDT.fit.SAD.dPrime.modelFit.Coefficients.Estimate(:);
-% FDT.fit.SAD.dPrime.pvalues = FDT.fit.SAD.dPrime.modelFit.Coefficients.pValue(:);
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CREATE THE TAD GLM
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Find the depression variable
-idxDep = find(strcmp(FDT.settings.variables.summarySheet, 'DEPRESSION'));
-
-% Create the depression variable and create GLM matrix
-Dep = [];
-for study = 1:4
-    Dep = [Dep; FDT.data.raw.extra{study}(:,idxDep)];
-end
-FDT.GLMs.TAD(:,1) = TA;
-FDT.GLMs.TAD(:,2) = Dep;
-FDT.GLMs.TAD(1:length(FDT.data.IDs{1}),3:5) = -1;
-FDT.GLMs.TAD(length(FDT.data.IDs{1})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2}),3) = 1;
-FDT.GLMs.TAD(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3}),4) = 1;
-FDT.GLMs.TAD(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+length(FDT.data.IDs{4}),5) = 1;
-
-% Check for missing values and remove from GLM and FDT data
-[idxNaN_row_TAD col] = find(isnan(FDT.GLMs.TAD));
-FDT.GLMs.TAD(idxNaN_row_TAD,:) = [];
-FDT.data.trials2counts.TAD.nR_S1 = FDT.data.trials2counts.nR_S1;
-FDT.data.trials2counts.TAD.nR_S2 = FDT.data.trials2counts.nR_S2;
-FDT.data.trials2counts.TAD.nR_S1(idxNaN_row_TAD) = [];
-FDT.data.trials2counts.TAD.nR_S2(idxNaN_row_TAD) = [];
-
-% Zscore variables
-FDT.GLMs.TAD(:,1) = zscore(FDT.GLMs.TAD(:,1));
-FDT.GLMs.TAD(:,2) = zscore(FDT.GLMs.TAD(:,2));
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% FIT THE TAD MODELS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Fit the HMeta-d model for mratio
-% FDT.fit.TAD.mratio.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.TAD.nR_S1, FDT.data.trials2counts.TAD.nR_S2, FDT.GLMs.TAD', FDT.settings.fit.mcmc_params);
-FDT.fit.TAD.mratio.HDI.interval = [0.007 0.993];
-FDT.fit.TAD.mratio.HDI.interval_unc = [0.025 0.975];
-FDT.fit.TAD.mratio.HDI.anx_HDI = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.987);
-FDT.fit.TAD.mratio.HDI.anx_HDI_unc = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.95);
-FDT.fit.TAD.mratio.HDI.anx_quantile = quantile(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAD.mratio.HDI.interval);
-FDT.fit.TAD.mratio.HDI.anx_quantile_unc = quantile(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAD.mratio.HDI.interval_unc);
-FDT.fit.TAD.mratio.HDI.dep_HDI = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.987);
-FDT.fit.TAD.mratio.HDI.dep_HDI_unc = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.95);
-FDT.fit.TAD.mratio.HDI.dep_quantile = quantile(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAD.mratio.HDI.interval);
-FDT.fit.TAD.mratio.HDI.dep_quantile_unc = quantile(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAD.mratio.HDI.interval_unc);
-FDT.fit.TAD.mratio.HDI.anxVdep_HDI = calc_HDI((FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), 0.987);
-FDT.fit.TAD.mratio.HDI.anxVdep_HDI_unc = calc_HDI((FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
-FDT.fit.TAD.mratio.HDI.anxVdep_quantile = quantile((FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.TAD.mratio.HDI.interval);
-FDT.fit.TAD.mratio.HDI.anxVdep_quantile_unc = quantile((FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.TAD.mratio.HDI.interval_unc);
-FDT.fit.TAD.mratio.HDI.avgAnxDep_HDI = calc_HDI((FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), 0.987);
-FDT.fit.TAD.mratio.HDI.avgAnxDep_HDI_unc = calc_HDI((FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
-FDT.fit.TAD.mratio.HDI.avgAnxDep_quantile = quantile((FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.TAD.mratio.HDI.interval);
-FDT.fit.TAD.mratio.HDI.avgAnxDep_quantile_unc = quantile((FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.TAD.mratio.HDI.interval_unc);
-FDT.fit.TAD.mratio.HDI.oneTail.interval = [0.0 0.987];
-FDT.fit.TAD.mratio.HDI.oneTail.interval_unc = [0.0 0.95];
-FDT.fit.TAD.mratio.HDI.oneTail.anx_inner = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 1-0.026);
-FDT.fit.TAD.mratio.HDI.oneTail.anx_outer = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.TAD.mratio.HDI.oneTail.anx = [FDT.fit.TAD.mratio.HDI.oneTail.anx_outer(1) FDT.fit.TAD.mratio.HDI.oneTail.anx_inner(2)];
-FDT.fit.TAD.mratio.HDI.oneTail.anx_inner_unc = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9);
-FDT.fit.TAD.mratio.HDI.oneTail.anx_outer_unc = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.TAD.mratio.HDI.oneTail.anx_unc = [FDT.fit.TAD.mratio.HDI.oneTail.anx_outer_unc(1) FDT.fit.TAD.mratio.HDI.oneTail.anx_inner_unc(2)];
-FDT.fit.TAD.mratio.HDI.oneTail.anx_quantile = quantile(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAD.mratio.HDI.oneTail.interval);
-FDT.fit.TAD.mratio.HDI.oneTail.anx_quantile_unc = quantile(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAD.mratio.HDI.oneTail.interval_unc);
-FDT.fit.TAD.mratio.HDI.oneTail.dep_inner = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 1-0.026);
-FDT.fit.TAD.mratio.HDI.oneTail.dep_outer = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.TAD.mratio.HDI.oneTail.dep = [FDT.fit.TAD.mratio.HDI.oneTail.dep_outer(1) FDT.fit.TAD.mratio.HDI.oneTail.dep_inner(2)];
-FDT.fit.TAD.mratio.HDI.oneTail.dep_inner_unc = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.9);
-FDT.fit.TAD.mratio.HDI.oneTail.dep_outer_unc = calc_HDI(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.TAD.mratio.HDI.oneTail.dep_unc = [FDT.fit.TAD.mratio.HDI.oneTail.dep_outer_unc(1) FDT.fit.TAD.mratio.HDI.oneTail.dep_inner_unc(2)];
-FDT.fit.TAD.mratio.HDI.oneTail.dep_quantile = quantile(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAD.mratio.HDI.oneTail.interval);
-FDT.fit.TAD.mratio.HDI.oneTail.dep_quantile_unc = quantile(FDT.fit.TAD.mratio.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAD.mratio.HDI.oneTail.interval_unc);
-
-% Fit the linear model for sensitivity (filter number)
-filters_TAD = FDT.data.summary.avgFilter;
-filters_TAD(idxNaN_row_TAD) = [];
-FDT.fit.TAD.sensitivity.modelFit = fitlm(FDT.GLMs.TAD, filters_TAD);
-FDT.fit.TAD.sensitivity.coefficients = FDT.fit.TAD.sensitivity.modelFit.Coefficients.Estimate(:);
-FDT.fit.TAD.sensitivity.pvalues = FDT.fit.TAD.sensitivity.modelFit.Coefficients.pValue(:);
-
-% Fit the linear model for sensibility (confidence)
-confidence_TAD = FDT.data.summary.avgConfidence;
-confidence_TAD(idxNaN_row_TAD) = [];
-FDT.fit.TAD.sensibility.modelFit = fitlm(FDT.GLMs.TAD, confidence_TAD);
-FDT.fit.TAD.sensibility.coefficients = FDT.fit.TAD.sensibility.modelFit.Coefficients.Estimate(:);
-FDT.fit.TAD.sensibility.pvalues = FDT.fit.TAD.sensibility.modelFit.Coefficients.pValue(:);
-
-% Fit the linear model for decision bias
-FDT.fit.TAD.bias.modelFit = fitlm(FDT.GLMs.TAD, FDT.fit.TAD.mratio.modelFit.c1);
-FDT.fit.TAD.bias.coefficients = FDT.fit.TAD.bias.modelFit.Coefficients.Estimate(:);
-FDT.fit.TAD.bias.pvalues = FDT.fit.TAD.bias.modelFit.Coefficients.pValue(:);
-
-% Fit the linear model for d' (sanity check)
-FDT.fit.TAD.dPrime.modelFit = fitlm(FDT.GLMs.TAD, FDT.fit.TAD.mratio.modelFit.d1);
-FDT.fit.TAD.dPrime.coefficients = FDT.fit.TAD.dPrime.modelFit.Coefficients.Estimate(:);
-FDT.fit.TAD.dPrime.pvalues = FDT.fit.TAD.dPrime.modelFit.Coefficients.pValue(:);
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CREATE THE SAG GLM
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+idxSA = find(strcmp(FDT.settings.variables.summarySheet, 'ANXIETY-S'));
 
 % Find the gender variable
 idxGen = find(strcmp(FDT.settings.variables.summarySheet, 'GENDER'));
 
 % Create the gender variable and GLM with interaction specified in terms matrix
+SA = [];
 Gender = [];
 for study = 1:4
+    SA = [SA; FDT.data.raw.extra{study}(:,idxSA)];
     Gender = [Gender; FDT.data.raw.extra{study}(:,idxGen)];
 end
 FDT.GLMs.SAG(:,1) = SA;
@@ -569,7 +216,6 @@ FDT.GLMs.SAG(1:length(FDT.data.IDs{1}),3:5) = -1;
 FDT.GLMs.SAG(length(FDT.data.IDs{1})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2}),3) = 1;
 FDT.GLMs.SAG(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3}),4) = 1;
 FDT.GLMs.SAG(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+length(FDT.data.IDs{4}),5) = 1;
-FDT.GLMs.SAG_t = [1 0 0 0 0 0; 0 1 0 0 0 0; 0 0 1 0 0 0; 0 1 1 0 0 0];
 
 % Check for missing values and remove from GLM and FDT data
 [idxNaN_row_SAG col] = find(isnan(FDT.GLMs.SAG));
@@ -601,118 +247,85 @@ FDT.GLMs.SAGIS(:,4:6) = FDT.GLMs.SAG(:,3:5);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Fit the HMeta-d model for mratio (specified interaction term)
-% FDT.fit.SAG.mratio.SAGI.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SAG.nR_S1, FDT.data.trials2counts.SAG.nR_S2, FDT.GLMs.SAGI', FDT.settings.fit.mcmc_params);
-FDT.fit.SAG.mratio.SAGI.HDI.interval = [0.007 0.993];
-FDT.fit.SAG.mratio.SAGI.HDI.interval_unc = [0.025 0.975];
-FDT.fit.SAG.mratio.SAGI.HDI.anxF_HDI = calc_HDI((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.987);
-FDT.fit.SAG.mratio.SAGI.HDI.anxF_HDI_unc = calc_HDI((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.95);
-FDT.fit.SAG.mratio.SAGI.HDI.anxF_quantile = quantile((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), FDT.fit.SAG.mratio.SAGI.HDI.interval);
-FDT.fit.SAG.mratio.SAGI.HDI.anxF_quantile_unc = quantile((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), FDT.fit.SAG.mratio.SAGI.HDI.interval_unc);
-FDT.fit.SAG.mratio.SAGI.HDI.anxM_HDI = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), 0.987);
-FDT.fit.SAG.mratio.SAGI.HDI.anxM_HDI_unc = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), 0.95);
-FDT.fit.SAG.mratio.SAGI.HDI.anxM_quantile = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAG.mratio.SAGI.HDI.interval);
-FDT.fit.SAG.mratio.SAGI.HDI.anxM_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAG.mratio.SAGI.HDI.interval_unc);
-FDT.fit.SAG.mratio.SAGI.HDI.gender_HDI = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), 0.987);
-FDT.fit.SAG.mratio.SAGI.HDI.gender_HDI_unc = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), 0.95);
-FDT.fit.SAG.mratio.SAGI.HDI.gender_quantile = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAG.mratio.SAGI.HDI.interval);
-FDT.fit.SAG.mratio.SAGI.HDI.gender_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAG.mratio.SAGI.HDI.interval_unc);
-FDT.fit.SAG.mratio.SAGI.HDI.interaction_HDI = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), 0.987);
-FDT.fit.SAG.mratio.SAGI.HDI.interaction_HDI_unc = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), 0.95);
-FDT.fit.SAG.mratio.SAGI.HDI.interaction_quantile = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.SAG.mratio.SAGI.HDI.interval);
-FDT.fit.SAG.mratio.SAGI.HDI.interaction_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.SAG.mratio.SAGI.HDI.interval_unc);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval = [0.0 0.987];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval_unc = [0.0 0.95];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_inner = calc_HDI((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), 1-0.026);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_outer = calc_HDI((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.9999);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF = [FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_outer(1) FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_inner(2)];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_inner_unc = calc_HDI((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.9);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_outer_unc = calc_HDI((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.9999);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_unc = [FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_outer_unc(1) FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_inner_unc(2)];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_quantile = quantile((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxF_quantile_unc = quantile((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval_unc);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_inner = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), 1-0.026);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_outer = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM = [FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_outer(1) FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_inner(2)];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_inner_unc = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), 0.9);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_outer_unc = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_unc = [FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_outer_unc(1) FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_inner_unc(2)];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_quantile = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.anxM_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval_unc);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_inner = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), 1-0.026);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_outer = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender = [FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_outer(1) FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_inner(2)];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_inner_unc = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), 0.9);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_outer_unc = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_unc = [FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_outer_unc(1) FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_inner_unc(2)];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_quantile = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.gender_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval_unc);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_inner = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), 1-0.026);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_outer = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), 0.9999);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction = [FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_outer(1) FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_inner(2)];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_inner_unc = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), 0.9);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_outer_unc = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), 0.9999);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_unc = [FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_outer_unc(1) FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_inner_unc(2)];
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_quantile = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval);
-FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interaction_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.SAG.mratio.SAGI.HDI.oneTail.interval_unc);
+FDT.fit.SAG.mratio.SAGI.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SAG.nR_S1, FDT.data.trials2counts.SAG.nR_S2, FDT.GLMs.SAGI', FDT.settings.fit.mcmc_params);
+FDT.fit.SAG.mratio.SAGI.HDI.anxF = calc_HDI((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.95);
+FDT.fit.SAG.mratio.SAGI.HDI.anxM = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.SAG.mratio.SAGI.HDI.gender = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), 0.95);
+FDT.fit.SAG.mratio.SAGI.HDI.interaction = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), 0.95);
+FDT.fit.SAG.mratio.SAGI.HDI.intercept = calc_HDI(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
 FDT.fit.SAG.mratio.SAGI.estimates.anxF = FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta1 + FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta3;
 FDT.fit.SAG.mratio.SAGI.estimates.anxM = FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta1;
 FDT.fit.SAG.mratio.SAGI.estimates.gender = FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta2;
 FDT.fit.SAG.mratio.SAGI.estimates.interaction = FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta3;
+% Plot the gender HDIs for checking
+figure;
+set(gcf, 'Position', [200 200 800 300])
+subplot(1,2,1)
+histogram(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_logMratio(:));
+hold on
+xline(FDT.fit.SAG.mratio.SAGI.modelFit.mu_logMratio, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.intercept(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.intercept(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Intercept (Male) HDI');
+set(gca, 'FontSize', 14)
+subplot(1,2,2)
+histogram(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:));
+hold on
+xline(FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta2, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.gender(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.gender(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Gender (F>M) Beta HDI');
+set(gca, 'FontSize', 14)
+% Plot the gender HDIs for checking
+figure;
+set(gcf, 'Position', [200 200 1200 300])
+subplot(1,3,1)
+histogram((FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)));
+hold on
+xline((FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta1 + FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta3), 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.anxF(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.anxF(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Female State anxiety Beta HDI');
+set(gca, 'FontSize', 14)
+subplot(1,3,2)
+histogram(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:));
+hold on
+xline(FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta1, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.anxM(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.anxM(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Male State anxiety Beta HDI');
+set(gca, 'FontSize', 14)
+subplot(1,3,3)
+histogram(FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:));
+hold on
+xline(FDT.fit.SAG.mratio.SAGI.modelFit.mu_beta3, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.interaction(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG.mratio.SAGI.HDI.interaction(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Interaction Beta HDI');
+set(gca, 'FontSize', 14)
 
 % Fit the HMeta-d model for mratio (split interaction term)
-% FDT.fit.SAG.mratio.SAGIS.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SAG.nR_S1, FDT.data.trials2counts.SAG.nR_S2, FDT.GLMs.SAGIS', FDT.settings.fit.mcmc_params);
-FDT.fit.SAG.mratio.SAGIS.HDI.interval = [0.007 0.993];
-FDT.fit.SAG.mratio.SAGIS.HDI.interval_unc = [0.025 0.975];
-FDT.fit.SAG.mratio.SAGIS.HDI.anxF_HDI = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.987);
-FDT.fit.SAG.mratio.SAGIS.HDI.anxF_HDI_unc = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.95);
-FDT.fit.SAG.mratio.SAGIS.HDI.anxF_quantile = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAG.mratio.SAGIS.HDI.interval);
-FDT.fit.SAG.mratio.SAGIS.HDI.anxF_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAG.mratio.SAGIS.HDI.interval_unc);
-FDT.fit.SAG.mratio.SAGIS.HDI.anxM_HDI = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.987);
-FDT.fit.SAG.mratio.SAGIS.HDI.anxM_HDI_unc = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.95);
-FDT.fit.SAG.mratio.SAGIS.HDI.anxM_quantile = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAG.mratio.SAGIS.HDI.interval);
-FDT.fit.SAG.mratio.SAGIS.HDI.anxM_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAG.mratio.SAGIS.HDI.interval_unc);
-FDT.fit.SAG.mratio.SAGIS.HDI.gender_HDI = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.987);
-FDT.fit.SAG.mratio.SAGIS.HDI.gender_HDI_unc = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.95);
-FDT.fit.SAG.mratio.SAGIS.HDI.gender_quantile = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.SAG.mratio.SAGIS.HDI.interval);
-FDT.fit.SAG.mratio.SAGIS.HDI.gender_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.SAG.mratio.SAGIS.HDI.interval_unc);
-FDT.fit.SAG.mratio.SAGIS.HDI.interaction_HDI = calc_HDI((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.987);
-FDT.fit.SAG.mratio.SAGIS.HDI.interaction_HDI_unc = calc_HDI((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
-FDT.fit.SAG.mratio.SAGIS.HDI.interaction_quantile = quantile((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.SAG.mratio.SAGIS.HDI.interval);
-FDT.fit.SAG.mratio.SAGIS.HDI.interaction_quantile_unc = quantile((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.SAG.mratio.SAGIS.HDI.interval_unc);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval = [0.0 0.987];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval_unc = [0.0 0.95];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_inner = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), 1-0.026);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_outer = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF = [FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_outer(1) FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_inner(2)];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_inner_unc = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.9);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_outer_unc = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_unc = [FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_outer_unc(1) FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_inner_unc(2)];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_quantile = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxF_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval_unc);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_inner = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), 1-0.026);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_outer = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM = [FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_outer(1) FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_inner(2)];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_inner_unc = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.9);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_outer_unc = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_unc = [FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_outer_unc(1) FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_inner_unc(2)];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_quantile = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.anxM_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval_unc);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_inner = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), 1-0.026);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_outer = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.9999);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender = [FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_outer(1) FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_inner(2)];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_inner_unc = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.9);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_outer_unc = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.9999);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_unc = [FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_outer_unc(1) FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_inner_unc(2)];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_quantile = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.gender_quantile_unc = quantile(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval_unc);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_inner = calc_HDI((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), 1-0.026);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_outer = calc_HDI((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.9999);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction = [FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_outer(1) FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_inner(2)];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_inner_unc = calc_HDI((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.9);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_outer_unc = calc_HDI((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.9999);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_unc = [FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_outer_unc(1) FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_inner_unc(2)];
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_quantile = quantile((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval);
-FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interaction_quantile_unc = quantile((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.SAG.mratio.SAGIS.HDI.oneTail.interval_unc);
+FDT.fit.SAG.mratio.SAGIS.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SAG.nR_S1, FDT.data.trials2counts.SAG.nR_S2, FDT.GLMs.SAGIS', FDT.settings.fit.mcmc_params);
+FDT.fit.SAG.mratio.SAGIS.HDI.anxF = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.SAG.mratio.SAGIS.HDI.anxM = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.95);
+FDT.fit.SAG.mratio.SAGIS.HDI.gender = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.95);
+FDT.fit.SAG.mratio.SAGIS.HDI.interaction = calc_HDI((FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
+FDT.fit.SAG.mratio.SAGIS.HDI.intercept = calc_HDI(FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
 FDT.fit.SAG.mratio.SAGIS.estimates.anxF = FDT.fit.SAG.mratio.SAGIS.modelFit.mu_beta1;
 FDT.fit.SAG.mratio.SAGIS.estimates.anxM = FDT.fit.SAG.mratio.SAGIS.modelFit.mu_beta2;
 FDT.fit.SAG.mratio.SAGIS.estimates.gender = FDT.fit.SAG.mratio.SAGIS.modelFit.mu_beta3;
@@ -721,40 +334,570 @@ FDT.fit.SAG.mratio.SAGIS.estimates.interaction = FDT.fit.SAG.mratio.SAGIS.modelF
 % Fit the linear model for sensitivity (filter number)
 filters_SAG = FDT.data.summary.avgFilter;
 filters_SAG(idxNaN_row_SAG) = [];
-FDT.fit.SAG.sensitivity.modelFit = fitlm(FDT.GLMs.SAGI, filters_SAG, 'CategoricalVars', 2);
-FDT.fit.SAG.sensitivity.coefficients = FDT.fit.SAG.sensitivity.modelFit.Coefficients.Estimate(:);
-FDT.fit.SAG.sensitivity.pvalues = FDT.fit.SAG.sensitivity.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG.sensitivity.SAGI.modelFit = fitlm(FDT.GLMs.SAGI, filters_SAG, 'CategoricalVars', 2);
+FDT.fit.SAG.sensitivity.SAGI.coefficients = FDT.fit.SAG.sensitivity.SAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG.sensitivity.SAGI.pvalues = FDT.fit.SAG.sensitivity.SAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG.sensitivity.SAGIS.modelFit = fitlm(FDT.GLMs.SAGIS, filters_SAG, 'CategoricalVars', 3);
+FDT.fit.SAG.sensitivity.SAGIS.coefficients = FDT.fit.SAG.sensitivity.SAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG.sensitivity.SAGIS.pvalues = FDT.fit.SAG.sensitivity.SAGIS.modelFit.Coefficients.pValue(:);
 
 % Fit the linear model for sensibility (confidence)
 confidence_SAG = FDT.data.summary.avgConfidence;
 confidence_SAG(idxNaN_row_SAG) = [];
-FDT.fit.SAG.sensibility.modelFit = fitlm(FDT.GLMs.SAGI, confidence_SAG, 'CategoricalVars', 2);
-FDT.fit.SAG.sensibility.coefficients = FDT.fit.SAG.sensibility.modelFit.Coefficients.Estimate(:);
-FDT.fit.SAG.sensibility.pvalues = FDT.fit.SAG.sensibility.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG.sensibility.SAGI.modelFit = fitlm(FDT.GLMs.SAGI, confidence_SAG, 'CategoricalVars', 2);
+FDT.fit.SAG.sensibility.SAGI.coefficients = FDT.fit.SAG.sensibility.SAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG.sensibility.SAGI.pvalues = FDT.fit.SAG.sensibility.SAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG.sensibility.SAGIS.modelFit = fitlm(FDT.GLMs.SAGIS, confidence_SAG, 'CategoricalVars', 3);
+FDT.fit.SAG.sensibility.SAGIS.coefficients = FDT.fit.SAG.sensibility.SAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG.sensibility.SAGIS.pvalues = FDT.fit.SAG.sensibility.SAGIS.modelFit.Coefficients.pValue(:);
 
 % Fit the linear model for decision bias
-FDT.fit.SAG.bias.modelFit = fitlm(FDT.GLMs.SAGI, FDT.fit.SAG.mratio.SAGI.modelFit.c1, 'CategoricalVars', 2);
-FDT.fit.SAG.bias.coefficients = FDT.fit.SAG.bias.modelFit.Coefficients.Estimate(:);
-FDT.fit.SAG.bias.pvalues = FDT.fit.SAG.bias.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG.bias.SAGI.modelFit = fitlm(FDT.GLMs.SAGI, FDT.fit.SAG.mratio.SAGI.modelFit.c1, 'CategoricalVars', 2);
+FDT.fit.SAG.bias.SAGI.coefficients = FDT.fit.SAG.bias.SAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG.bias.SAGI.pvalues = FDT.fit.SAG.bias.SAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG.bias.SAGIS.modelFit = fitlm(FDT.GLMs.SAGIS, FDT.fit.SAG.mratio.SAGIS.modelFit.c1, 'CategoricalVars', 3);
+FDT.fit.SAG.bias.SAGIS.coefficients = FDT.fit.SAG.bias.SAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG.bias.SAGIS.pvalues = FDT.fit.SAG.bias.SAGIS.modelFit.Coefficients.pValue(:);
 
 % Fit the linear model for d' (sanity check)
-FDT.fit.SAG.dPrime.modelFit = fitlm(FDT.GLMs.SAGI, FDT.fit.SAG.mratio.SAGI.modelFit.d1, 'CategoricalVars', 2);
-FDT.fit.SAG.dPrime.coefficients = FDT.fit.SAG.dPrime.modelFit.Coefficients.Estimate(:);
-FDT.fit.SAG.dPrime.pvalues = FDT.fit.SAG.dPrime.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG.dPrime.SAGI.modelFit = fitlm(FDT.GLMs.SAGI, FDT.fit.SAG.mratio.SAGI.modelFit.d1, 'CategoricalVars', 2);
+FDT.fit.SAG.dPrime.SAGI.coefficients = FDT.fit.SAG.dPrime.SAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG.dPrime.SAGI.pvalues = FDT.fit.SAG.dPrime.SAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG.dPrime.SAGIS.modelFit = fitlm(FDT.GLMs.SAGIS, FDT.fit.SAG.mratio.SAGI.modelFit.d1, 'CategoricalVars', 3);
+FDT.fit.SAG.dPrime.SAGIS.coefficients = FDT.fit.SAG.dPrime.SAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG.dPrime.SAGIS.pvalues = FDT.fit.SAG.dPrime.SAGIS.modelFit.Coefficients.pValue(:);
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FIT THE REDUCED SA/SAG MODELS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Create reduced SA GLM
+FDT.GLMs.SA_red = FDT.GLMs.SA(:,1);
+
+% Fit the HMeta-d model for mratio
+FDT.fit.SA_red.mratio.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SA.nR_S1, FDT.data.trials2counts.SA.nR_S2, FDT.GLMs.SA_red', FDT.settings.fit.mcmc_params);
+FDT.fit.SA_red.mratio.HDI.anx_corr = calc_HDI(FDT.fit.SA_red.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.987);
+FDT.fit.SA_red.mratio.HDI.anx = calc_HDI(FDT.fit.SA_red.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.SA_red.mratio.HDI.intercept = calc_HDI(FDT.fit.SA_red.mratio.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
+% Plot the HDI for checking
+figure;
+set(gcf, 'Position', [200 200 400 300])
+histogram(FDT.fit.SA_red.mratio.modelFit.mcmc.samples.mu_beta1(:));
+hold on
+xline(FDT.fit.SA_red.mratio.modelFit.mu_beta1, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SA_red.mratio.HDI.anx(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SA_red.mratio.HDI.anx(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('State anxiety Beta HDI');
+set(gca, 'FontSize', 14)
+
+% Fit the linear model for sensitivity (filter number)
+filters_SA = FDT.data.summary.avgFilter;
+filters_SA(idxNaN_row_SA) = [];
+FDT.fit.SA_red.sensitivity.modelFit = fitlm(FDT.GLMs.SA_red, filters_SA);
+FDT.fit.SA_red.sensitivity.coefficients = FDT.fit.SA_red.sensitivity.modelFit.Coefficients.Estimate(:);
+FDT.fit.SA_red.sensitivity.pvalues = FDT.fit.SA_red.sensitivity.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for sensibility (confidence)
+confidence_SA = FDT.data.summary.avgConfidence;
+confidence_SA(idxNaN_row_SA) = [];
+FDT.fit.SA_red.sensibility.modelFit = fitlm(FDT.GLMs.SA_red, confidence_SA);
+FDT.fit.SA_red.sensibility.coefficients = FDT.fit.SA_red.sensibility.modelFit.Coefficients.Estimate(:);
+FDT.fit.SA_red.sensibility.pvalues = FDT.fit.SA_red.sensibility.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for decision bias
+FDT.fit.SA_red.bias.modelFit = fitlm(FDT.GLMs.SA_red, FDT.fit.SA_red.mratio.modelFit.c1);
+FDT.fit.SA_red.bias.coefficients = FDT.fit.SA_red.bias.modelFit.Coefficients.Estimate(:);
+FDT.fit.SA_red.bias.pvalues = FDT.fit.SA_red.bias.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for d' (sanity check)
+FDT.fit.SA_red.dPrime.modelFit = fitlm(FDT.GLMs.SA_red, FDT.fit.SA_red.mratio.modelFit.d1);
+FDT.fit.SA_red.dPrime.coefficients = FDT.fit.SA_red.dPrime.modelFit.Coefficients.Estimate(:);
+FDT.fit.SA_red.dPrime.pvalues = FDT.fit.SA_red.dPrime.modelFit.Coefficients.pValue(:);
+
+% Create reduced SAG GLMs
+FDT.GLMs.SAGI_red = FDT.GLMs.SAGI(:,1:3);
+FDT.GLMs.SAGIS_red = FDT.GLMs.SAGIS(:,1:3);
+
+% Fit the reduced HMeta-d model for mratio (specified interaction term)
+FDT.fit.SAG_red.mratio.SAGI.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SAG.nR_S1, FDT.data.trials2counts.SAG.nR_S2, FDT.GLMs.SAGI_red', FDT.settings.fit.mcmc_params);
+FDT.fit.SAG_red.mratio.SAGI.HDI.anxF = calc_HDI((FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.95);
+FDT.fit.SAG_red.mratio.SAGI.HDI.anxM = calc_HDI(FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.SAG_red.mratio.SAGI.HDI.gender = calc_HDI(FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:), 0.95);
+FDT.fit.SAG_red.mratio.SAGI.HDI.interaction = calc_HDI(FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:), 0.95);
+FDT.fit.SAG_red.mratio.SAGI.HDI.intercept = calc_HDI(FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
+FDT.fit.SAG_red.mratio.SAGI.estimates.anxF = FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta1 + FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta3;
+FDT.fit.SAG_red.mratio.SAGI.estimates.anxM = FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta1;
+FDT.fit.SAG_red.mratio.SAGI.estimates.gender = FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta2;
+FDT.fit.SAG_red.mratio.SAGI.estimates.interaction = FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta3;
+% Plot the gender HDIs for checking
+figure;
+set(gcf, 'Position', [200 200 800 300])
+subplot(1,2,1)
+histogram(FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_logMratio(:));
+hold on
+xline(FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_logMratio, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.intercept(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.intercept(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Intercept (Male) HDI');
+set(gca, 'FontSize', 14)
+subplot(1,2,2)
+histogram(FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta2(:));
+hold on
+xline(FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta2, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.gender(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.gender(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Gender (F>M) Beta HDI');
+set(gca, 'FontSize', 14)
+% Plot the gender HDIs for checking
+figure;
+set(gcf, 'Position', [200 200 1200 300])
+subplot(1,3,1)
+histogram((FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:)));
+hold on
+xline((FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta1 + FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta3), 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.anxF(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.anxF(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Female State anxiety Beta HDI');
+set(gca, 'FontSize', 14)
+subplot(1,3,2)
+histogram(FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta1(:));
+hold on
+xline(FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta1, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.anxM(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.anxM(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Male State anxiety Beta HDI');
+set(gca, 'FontSize', 14)
+subplot(1,3,3)
+histogram(FDT.fit.SAG_red.mratio.SAGI.modelFit.mcmc.samples.mu_beta3(:));
+hold on
+xline(FDT.fit.SAG_red.mratio.SAGI.modelFit.mu_beta3, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.interaction(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.SAG_red.mratio.SAGI.HDI.interaction(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Interaction Beta HDI');
+set(gca, 'FontSize', 14)
+
+% Fit the reduced HMeta-d model for mratio (split interaction term)
+FDT.fit.SAG_red.mratio.SAGIS.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.SAG.nR_S1, FDT.data.trials2counts.SAG.nR_S2, FDT.GLMs.SAGIS_red', FDT.settings.fit.mcmc_params);
+FDT.fit.SAG_red.mratio.SAGIS.HDI.anxF = calc_HDI(FDT.fit.SAG_red.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.SAG_red.mratio.SAGIS.HDI.anxM = calc_HDI(FDT.fit.SAG_red.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.95);
+FDT.fit.SAG_red.mratio.SAGIS.HDI.gender = calc_HDI(FDT.fit.SAG_red.mratio.SAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.95);
+FDT.fit.SAG_red.mratio.SAGIS.HDI.interaction = calc_HDI((FDT.fit.SAG_red.mratio.SAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.SAG_red.mratio.SAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
+FDT.fit.SAG_red.mratio.SAGIS.HDI.intercept = calc_HDI(FDT.fit.SAG_red.mratio.SAGIS.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
+FDT.fit.SAG_red.mratio.SAGIS.estimates.anxF = FDT.fit.SAG_red.mratio.SAGIS.modelFit.mu_beta1;
+FDT.fit.SAG_red.mratio.SAGIS.estimates.anxM = FDT.fit.SAG_red.mratio.SAGIS.modelFit.mu_beta2;
+FDT.fit.SAG_red.mratio.SAGIS.estimates.gender = FDT.fit.SAG_red.mratio.SAGIS.modelFit.mu_beta3;
+FDT.fit.SAG_red.mratio.SAGIS.estimates.interaction = FDT.fit.SAG_red.mratio.SAGIS.modelFit.mu_beta1 - FDT.fit.SAG_red.mratio.SAGIS.modelFit.mu_beta2;
+
+% Fit the linear model for sensitivity (filter number)
+filters_SAG = FDT.data.summary.avgFilter;
+filters_SAG(idxNaN_row_SAG) = [];
+FDT.fit.SAG_red.sensitivity.SAGI.modelFit = fitlm(FDT.GLMs.SAGI_red, filters_SAG, 'CategoricalVars', 2);
+FDT.fit.SAG_red.sensitivity.SAGI.coefficients = FDT.fit.SAG_red.sensitivity.SAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG_red.sensitivity.SAGI.pvalues = FDT.fit.SAG_red.sensitivity.SAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG_red.sensitivity.SAGIS.modelFit = fitlm(FDT.GLMs.SAGIS_red, filters_SAG, 'CategoricalVars', 3);
+FDT.fit.SAG_red.sensitivity.SAGIS.coefficients = FDT.fit.SAG_red.sensitivity.SAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG_red.sensitivity.SAGIS.pvalues = FDT.fit.SAG_red.sensitivity.SAGIS.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for sensibility (confidence)
+confidence_SAG = FDT.data.summary.avgConfidence;
+confidence_SAG(idxNaN_row_SAG) = [];
+FDT.fit.SAG_red.sensibility.SAGI.modelFit = fitlm(FDT.GLMs.SAGI_red, confidence_SAG, 'CategoricalVars', 2);
+FDT.fit.SAG_red.sensibility.SAGI.coefficients = FDT.fit.SAG_red.sensibility.SAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG_red.sensibility.SAGI.pvalues = FDT.fit.SAG_red.sensibility.SAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG_red.sensibility.SAGIS.modelFit = fitlm(FDT.GLMs.SAGIS_red, confidence_SAG, 'CategoricalVars', 3);
+FDT.fit.SAG_red.sensibility.SAGIS.coefficients = FDT.fit.SAG_red.sensibility.SAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG_red.sensibility.SAGIS.pvalues = FDT.fit.SAG_red.sensibility.SAGIS.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for decision bias
+FDT.fit.SAG_red.bias.SAGI.modelFit = fitlm(FDT.GLMs.SAGI_red, FDT.fit.SAG_red.mratio.SAGI.modelFit.c1, 'CategoricalVars', 2);
+FDT.fit.SAG_red.bias.SAGI.coefficients = FDT.fit.SAG_red.bias.SAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG_red.bias.SAGI.pvalues = FDT.fit.SAG_red.bias.SAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG_red.bias.SAGIS.modelFit = fitlm(FDT.GLMs.SAGIS_red, FDT.fit.SAG_red.mratio.SAGIS.modelFit.c1, 'CategoricalVars', 3);
+FDT.fit.SAG_red.bias.SAGIS.coefficients = FDT.fit.SAG_red.bias.SAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG_red.bias.SAGIS.pvalues = FDT.fit.SAG_red.bias.SAGIS.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for d' (sanity check)
+FDT.fit.SAG_red.dPrime.SAGI.modelFit = fitlm(FDT.GLMs.SAGI_red, FDT.fit.SAG_red.mratio.SAGI.modelFit.d1, 'CategoricalVars', 2);
+FDT.fit.SAG_red.dPrime.SAGI.coefficients = FDT.fit.SAG_red.dPrime.SAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG_red.dPrime.SAGI.pvalues = FDT.fit.SAG_red.dPrime.SAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.SAG_red.dPrime.SAGIS.modelFit = fitlm(FDT.GLMs.SAGIS_red, FDT.fit.SAG_red.mratio.SAGI.modelFit.d1, 'CategoricalVars', 3);
+FDT.fit.SAG_red.dPrime.SAGIS.coefficients = FDT.fit.SAG_red.dPrime.SAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.SAG_red.dPrime.SAGIS.pvalues = FDT.fit.SAG_red.dPrime.SAGIS.modelFit.Coefficients.pValue(:);
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CREATE THE D GLM
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Find the depression variable
+idxDep = find(strcmp(FDT.settings.variables.summarySheet, 'DEPRESSION'));
+
+% Create the GLM matrix
+Dep = [];
+for study = 1:4
+    Dep = [Dep; FDT.data.raw.extra{study}(:,idxDep)];
+end
+FDT.GLMs.D(:,1) = Dep;
+FDT.GLMs.D(1:length(FDT.data.IDs{1}),2:4) = -1;
+FDT.GLMs.D(length(FDT.data.IDs{1})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2}),2) = 1;
+FDT.GLMs.D(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3}),3) = 1;
+FDT.GLMs.D(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+length(FDT.data.IDs{4}),4) = 1;
+
+% Check for missing values and remove from GLM and FDT data
+[idxNaN_row_D col] = find(isnan(FDT.GLMs.D));
+FDT.GLMs.D(idxNaN_row_D,:) = [];
+FDT.data.trials2counts.D.nR_S1 = FDT.data.trials2counts.nR_S1;
+FDT.data.trials2counts.D.nR_S2 = FDT.data.trials2counts.nR_S2;
+FDT.data.trials2counts.D.nR_S1(idxNaN_row_D) = [];
+FDT.data.trials2counts.D.nR_S2(idxNaN_row_D) = [];
+
+% Zscore variables
+FDT.GLMs.D(:,1) = zscore(FDT.GLMs.D(:,1));
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FIT THE D MODELS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Fit the HMeta-d model for mratio
+FDT.fit.D.mratio.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.D.nR_S1, FDT.data.trials2counts.D.nR_S2, FDT.GLMs.D', FDT.settings.fit.mcmc_params);
+FDT.fit.D.mratio.HDI.dep_corr = calc_HDI(FDT.fit.D.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.987);
+FDT.fit.D.mratio.HDI.dep = calc_HDI(FDT.fit.D.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.D.mratio.HDI.intercept = calc_HDI(FDT.fit.D.mratio.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
+% Plot the HDI for checking
+figure;
+set(gcf, 'Position', [200 200 400 300])
+histogram(FDT.fit.D.mratio.modelFit.mcmc.samples.mu_beta1(:));
+hold on
+xline(FDT.fit.D.mratio.modelFit.mu_beta1, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.D.mratio.HDI.dep(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.D.mratio.HDI.dep(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Depression Beta HDI');
+set(gca, 'FontSize', 14)
+
+% Fit the linear model for sensitivity (filter number)
+filters_D = FDT.data.summary.avgFilter;
+filters_D(idxNaN_row_D) = [];
+FDT.fit.D.sensitivity.modelFit = fitlm(FDT.GLMs.D, filters_D);
+FDT.fit.D.sensitivity.coefficients = FDT.fit.D.sensitivity.modelFit.Coefficients.Estimate(:);
+FDT.fit.D.sensitivity.pvalues = FDT.fit.D.sensitivity.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for sensibility (confidence)
+confidence_D = FDT.data.summary.avgConfidence;
+confidence_D(idxNaN_row_D) = [];
+FDT.fit.D.sensibility.modelFit = fitlm(FDT.GLMs.D, confidence_D);
+FDT.fit.D.sensibility.coefficients = FDT.fit.D.sensibility.modelFit.Coefficients.Estimate(:);
+FDT.fit.D.sensibility.pvalues = FDT.fit.D.sensibility.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for decision bias
+FDT.fit.D.bias.modelFit = fitlm(FDT.GLMs.D, FDT.fit.D.mratio.modelFit.c1);
+FDT.fit.D.bias.coefficients = FDT.fit.D.bias.modelFit.Coefficients.Estimate(:);
+FDT.fit.D.bias.pvalues = FDT.fit.D.bias.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for d' (sanity check)
+FDT.fit.D.dPrime.modelFit = fitlm(FDT.GLMs.D, FDT.fit.D.mratio.modelFit.d1);
+FDT.fit.D.dPrime.coefficients = FDT.fit.D.dPrime.modelFit.Coefficients.Estimate(:);
+FDT.fit.D.dPrime.pvalues = FDT.fit.D.dPrime.modelFit.Coefficients.pValue(:);
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CREATE THE DG GLM
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Find the depression variable
+idxDep = find(strcmp(FDT.settings.variables.summarySheet, 'DEPRESSION'));
+
+% Find the gender variable
+idxGen = find(strcmp(FDT.settings.variables.summarySheet, 'GENDER'));
+
+% Create the gender variable and GLM with interaction specified in terms matrix
+Dep = [];
+Gender = [];
+for study = 1:4
+    Dep = [Dep; FDT.data.raw.extra{study}(:,idxDep)];
+    Gender = [Gender; FDT.data.raw.extra{study}(:,idxGen)];
+end
+FDT.GLMs.DG(:,1) = Dep;
+FDT.GLMs.DG(:,2) = Gender;
+FDT.GLMs.DG(1:length(FDT.data.IDs{1}),3:5) = -1;
+FDT.GLMs.DG(length(FDT.data.IDs{1})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2}),3) = 1;
+FDT.GLMs.DG(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3}),4) = 1;
+FDT.GLMs.DG(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+length(FDT.data.IDs{4}),5) = 1;
+
+% Check for missing values and remove from GLM and FDT data
+[idxNaN_row_DG col] = find(isnan(FDT.GLMs.DG));
+FDT.GLMs.DG(idxNaN_row_DG,:) = [];
+FDT.data.trials2counts.DG.nR_S1 = FDT.data.trials2counts.nR_S1;
+FDT.data.trials2counts.DG.nR_S2 = FDT.data.trials2counts.nR_S2;
+FDT.data.trials2counts.DG.nR_S1(idxNaN_row_DG) = [];
+FDT.data.trials2counts.DG.nR_S2(idxNaN_row_DG) = [];
+
+% Zscore variables
+FDT.GLMs.DG(:,1) = zscore(FDT.GLMs.DG(:,1));
+
+% Create the SAG matrix with an explicit interaction term
+FDT.GLMs.DGI = FDT.GLMs.DG;
+FDT.GLMs.DGI(:,4:6) = FDT.GLMs.DG(:,3:5);
+FDT.GLMs.DGI(:,3) = FDT.GLMs.DG(:,1) .* FDT.GLMs.DG(:,2);
+
+% Create the SAG matrix with a split interaction term
+FDT.GLMs.DGIS(:,1) = FDT.GLMs.DG(:,1);
+FDT.GLMs.DGIS(:,2) = FDT.GLMs.DG(:,1);
+FDT.GLMs.DGIS(:,3) = FDT.GLMs.DG(:,2);
+FDT.GLMs.DGIS((FDT.GLMs.DG(:,2) == 0),1) = 0;
+FDT.GLMs.DGIS((FDT.GLMs.DG(:,2) == 1),2) = 0;
+FDT.GLMs.DGIS(:,4:6) = FDT.GLMs.DG(:,3:5);
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FIT THE DG MODELS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Fit the HMeta-d model for mratio (specified interaction term)
+FDT.fit.DG.mratio.DGI.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.DG.nR_S1, FDT.data.trials2counts.DG.nR_S2, FDT.GLMs.DGI', FDT.settings.fit.mcmc_params);
+FDT.fit.DG.mratio.DGI.HDI.depF = calc_HDI((FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta3(:)), 0.95);
+FDT.fit.DG.mratio.DGI.HDI.depM = calc_HDI(FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.DG.mratio.DGI.HDI.gender = calc_HDI(FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta2(:), 0.95);
+FDT.fit.DG.mratio.DGI.HDI.interaction = calc_HDI(FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta3(:), 0.95);
+FDT.fit.DG.mratio.DGI.HDI.intercept = calc_HDI(FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
+FDT.fit.DG.mratio.DGI.estimates.depF = FDT.fit.DG.mratio.DGI.modelFit.mu_beta1 + FDT.fit.DG.mratio.DGI.modelFit.mu_beta3;
+FDT.fit.DG.mratio.DGI.estimates.depM = FDT.fit.DG.mratio.DGI.modelFit.mu_beta1;
+FDT.fit.DG.mratio.DGI.estimates.gender = FDT.fit.DG.mratio.DGI.modelFit.mu_beta2;
+FDT.fit.DG.mratio.DGI.estimates.interaction = FDT.fit.DG.mratio.DGI.modelFit.mu_beta3;
+% Plot the gender HDIs for checking
+figure;
+set(gcf, 'Position', [200 200 800 300])
+subplot(1,2,1)
+histogram(FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_logMratio(:));
+hold on
+xline(FDT.fit.DG.mratio.DGI.modelFit.mu_logMratio, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.intercept(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.intercept(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Intercept (Male) HDI');
+set(gca, 'FontSize', 14)
+subplot(1,2,2)
+histogram(FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta2(:));
+hold on
+xline(FDT.fit.DG.mratio.DGI.modelFit.mu_beta2, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.gender(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.gender(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Gender (F>M) Beta HDI');
+set(gca, 'FontSize', 14)
+% Plot the gender HDIs for checking
+figure;
+set(gcf, 'Position', [200 200 1200 300])
+subplot(1,3,1)
+histogram((FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta3(:)));
+hold on
+xline((FDT.fit.DG.mratio.DGI.modelFit.mu_beta1 + FDT.fit.DG.mratio.DGI.modelFit.mu_beta3), 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.depF(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.depF(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Female Depression Beta HDI');
+set(gca, 'FontSize', 14)
+subplot(1,3,2)
+histogram(FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta1(:));
+hold on
+xline(FDT.fit.DG.mratio.DGI.modelFit.mu_beta1, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.depM(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.depM(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Male Depression Beta HDI');
+set(gca, 'FontSize', 14)
+subplot(1,3,3)
+histogram(FDT.fit.DG.mratio.DGI.modelFit.mcmc.samples.mu_beta3(:));
+hold on
+xline(FDT.fit.DG.mratio.DGI.modelFit.mu_beta3, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.interaction(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.DG.mratio.DGI.HDI.interaction(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Interaction Beta HDI');
+set(gca, 'FontSize', 14)
+
+% Fit the HMeta-d model for mratio (split interaction term)
+FDT.fit.DG.mratio.DGIS.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.DG.nR_S1, FDT.data.trials2counts.DG.nR_S2, FDT.GLMs.DGIS', FDT.settings.fit.mcmc_params);
+FDT.fit.DG.mratio.DGIS.HDI.depF = calc_HDI(FDT.fit.DG.mratio.DGIS.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.DG.mratio.DGIS.HDI.depM = calc_HDI(FDT.fit.DG.mratio.DGIS.modelFit.mcmc.samples.mu_beta2(:), 0.95);
+FDT.fit.DG.mratio.DGIS.HDI.gender = calc_HDI(FDT.fit.DG.mratio.DGIS.modelFit.mcmc.samples.mu_beta3(:), 0.95);
+FDT.fit.DG.mratio.DGIS.HDI.interaction = calc_HDI((FDT.fit.DG.mratio.DGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.DG.mratio.DGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
+FDT.fit.DG.mratio.DGIS.HDI.intercept = calc_HDI(FDT.fit.DG.mratio.DGIS.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
+FDT.fit.DG.mratio.DGIS.estimates.depF = FDT.fit.DG.mratio.DGIS.modelFit.mu_beta1;
+FDT.fit.DG.mratio.DGIS.estimates.depM = FDT.fit.DG.mratio.DGIS.modelFit.mu_beta2;
+FDT.fit.DG.mratio.DGIS.estimates.gender = FDT.fit.DG.mratio.DGIS.modelFit.mu_beta3;
+FDT.fit.DG.mratio.DGIS.estimates.interaction = FDT.fit.DG.mratio.DGIS.modelFit.mu_beta1 - FDT.fit.DG.mratio.DGIS.modelFit.mu_beta2;
+
+% Fit the linear model for sensitivity (filter number)
+filters_DG = FDT.data.summary.avgFilter;
+filters_DG(idxNaN_row_DG) = [];
+FDT.fit.DG.sensitivity.DGI.modelFit = fitlm(FDT.GLMs.DGI, filters_DG, 'CategoricalVars', 2);
+FDT.fit.DG.sensitivity.DGI.coefficients = FDT.fit.DG.sensitivity.DGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.DG.sensitivity.DGI.pvalues = FDT.fit.DG.sensitivity.DGI.modelFit.Coefficients.pValue(:);
+FDT.fit.DG.sensitivity.DGIS.modelFit = fitlm(FDT.GLMs.DGIS, filters_DG, 'CategoricalVars', 3);
+FDT.fit.DG.sensitivity.DGIS.coefficients = FDT.fit.DG.sensitivity.DGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.DG.sensitivity.DGIS.pvalues = FDT.fit.DG.sensitivity.DGIS.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for sensibility (confidence)
+confidence_DG = FDT.data.summary.avgConfidence;
+confidence_DG(idxNaN_row_DG) = [];
+FDT.fit.DG.sensibility.DGI.modelFit = fitlm(FDT.GLMs.DGI, confidence_DG, 'CategoricalVars', 2);
+FDT.fit.DG.sensibility.DGI.coefficients = FDT.fit.DG.sensibility.DGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.DG.sensibility.DGI.pvalues = FDT.fit.DG.sensibility.DGI.modelFit.Coefficients.pValue(:);
+FDT.fit.DG.sensibility.DGIS.modelFit = fitlm(FDT.GLMs.DGIS, confidence_DG, 'CategoricalVars', 3);
+FDT.fit.DG.sensibility.DGIS.coefficients = FDT.fit.DG.sensibility.DGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.DG.sensibility.DGIS.pvalues = FDT.fit.DG.sensibility.DGIS.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for decision bias
+FDT.fit.DG.bias.DGI.modelFit = fitlm(FDT.GLMs.DGI, FDT.fit.DG.mratio.DGI.modelFit.c1, 'CategoricalVars', 2);
+FDT.fit.DG.bias.DGI.coefficients = FDT.fit.DG.bias.DGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.DG.bias.DGI.pvalues = FDT.fit.DG.bias.DGI.modelFit.Coefficients.pValue(:);
+FDT.fit.DG.bias.DGIS.modelFit = fitlm(FDT.GLMs.DGIS, FDT.fit.DG.mratio.DGIS.modelFit.c1, 'CategoricalVars', 3);
+FDT.fit.DG.bias.DGIS.coefficients = FDT.fit.DG.bias.DGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.DG.bias.DGIS.pvalues = FDT.fit.DG.bias.DGIS.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for d' (sanity check)
+FDT.fit.DG.dPrime.DGI.modelFit = fitlm(FDT.GLMs.DGI, FDT.fit.DG.mratio.DGI.modelFit.d1, 'CategoricalVars', 2);
+FDT.fit.DG.dPrime.DGI.coefficients = FDT.fit.DG.dPrime.DGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.DG.dPrime.DGI.pvalues = FDT.fit.DG.dPrime.DGI.modelFit.Coefficients.pValue(:);
+FDT.fit.DG.dPrime.DGIS.modelFit = fitlm(FDT.GLMs.DGIS, FDT.fit.DG.mratio.DGI.modelFit.d1, 'CategoricalVars', 3);
+FDT.fit.DG.dPrime.DGIS.coefficients = FDT.fit.DG.dPrime.DGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.DG.dPrime.DGIS.pvalues = FDT.fit.DG.dPrime.DGIS.modelFit.Coefficients.pValue(:);
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CREATE THE TA GLM
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Find the trait anxiety variable
+idxTA = find(strcmp(FDT.settings.variables.summarySheet, 'ANXIETY-T'));
+
+% Create the GLM for state anxiety (with regressors for study location)
+TA = [];
+for study = 1:4
+    TA = [TA; FDT.data.raw.extra{study}(:,idxTA)];
+end
+FDT.GLMs.TA = [TA, zeros(length(TA),3)];
+FDT.GLMs.TA(1:length(FDT.data.IDs{1}),2:4) = -1;
+FDT.GLMs.TA(length(FDT.data.IDs{1})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2}),2) = 1;
+FDT.GLMs.TA(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3}),3) = 1;
+FDT.GLMs.TA(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+length(FDT.data.IDs{4}),4) = 1;
+
+% Check for missing values and remove from GLM and FDT data
+[idxNaN_row_TA col] = find(isnan(TA));
+FDT.GLMs.TA(idxNaN_row_TA,:) = [];
+FDT.data.trials2counts.TA.nR_S1 = FDT.data.trials2counts.nR_S1;
+FDT.data.trials2counts.TA.nR_S2 = FDT.data.trials2counts.nR_S2;
+FDT.data.trials2counts.TA.nR_S1(idxNaN_row_TA) = [];
+FDT.data.trials2counts.TA.nR_S2(idxNaN_row_TA) = [];
+
+% Zscore variables
+FDT.GLMs.TA(:,1) = zscore(FDT.GLMs.TA(:,1));
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FIT THE TA MODELS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Fit the HMeta-d model for mratio
+FDT.fit.TA.mratio.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.TA.nR_S1, FDT.data.trials2counts.TA.nR_S2, FDT.GLMs.TA', FDT.settings.fit.mcmc_params);
+FDT.fit.TA.mratio.HDI.anx_corr = calc_HDI(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.987);
+FDT.fit.TA.mratio.HDI.anx = calc_HDI(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.TA.mratio.HDI.intercept = calc_HDI(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
+% Plot the HDI for checking
+figure;
+set(gcf, 'Position', [200 200 400 300])
+histogram(FDT.fit.TA.mratio.modelFit.mcmc.samples.mu_beta1(:));
+hold on
+xline(FDT.fit.TA.mratio.modelFit.mu_beta1, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.TA.mratio.HDI.anx(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.TA.mratio.HDI.anx(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Trait anxiety Beta HDI');
+set(gca, 'FontSize', 14)
+
+% Fit the linear model for sensitivity (filter number)
+filters_TA = FDT.data.summary.avgFilter;
+filters_TA(idxNaN_row_TA) = [];
+FDT.fit.TA.sensitivity.modelFit = fitlm(FDT.GLMs.TA, filters_TA);
+FDT.fit.TA.sensitivity.coefficients = FDT.fit.TA.sensitivity.modelFit.Coefficients.Estimate(:);
+FDT.fit.TA.sensitivity.pvalues = FDT.fit.TA.sensitivity.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for sensibility (confidence)
+confidence_TA = FDT.data.summary.avgConfidence;
+confidence_TA(idxNaN_row_TA) = [];
+FDT.fit.TA.sensibility.modelFit = fitlm(FDT.GLMs.TA, confidence_TA);
+FDT.fit.TA.sensibility.coefficients = FDT.fit.TA.sensibility.modelFit.Coefficients.Estimate(:);
+FDT.fit.TA.sensibility.pvalues = FDT.fit.TA.sensibility.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for decision bias
+FDT.fit.TA.bias.modelFit = fitlm(FDT.GLMs.TA, FDT.fit.TA.mratio.modelFit.c1);
+FDT.fit.TA.bias.coefficients = FDT.fit.TA.bias.modelFit.Coefficients.Estimate(:);
+FDT.fit.TA.bias.pvalues = FDT.fit.TA.bias.modelFit.Coefficients.pValue(:);
+
+% Fit the linear model for d' (sanity check)
+FDT.fit.TA.dPrime.modelFit = fitlm(FDT.GLMs.TA, FDT.fit.TA.mratio.modelFit.d1);
+FDT.fit.TA.dPrime.coefficients = FDT.fit.TA.dPrime.modelFit.Coefficients.Estimate(:);
+FDT.fit.TA.dPrime.pvalues = FDT.fit.TA.dPrime.modelFit.Coefficients.pValue(:);
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CREATE THE TAG GLM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Create the gender GLM with interaction specified in terms matrix
+% Find the trait anxiety variable
+idxTA = find(strcmp(FDT.settings.variables.summarySheet, 'ANXIETY-T'));
+
+% Find the gender variable
+idxGen = find(strcmp(FDT.settings.variables.summarySheet, 'GENDER'));
+
+% Create the gender variable and GLM with interaction specified in terms matrix
+TA = [];
+Gender = [];
+for study = 1:4
+    TA = [TA; FDT.data.raw.extra{study}(:,idxTA)];
+    Gender = [Gender; FDT.data.raw.extra{study}(:,idxGen)];
+end
 FDT.GLMs.TAG(:,1) = TA;
 FDT.GLMs.TAG(:,2) = Gender;
 FDT.GLMs.TAG(1:length(FDT.data.IDs{1}),3:5) = -1;
 FDT.GLMs.TAG(length(FDT.data.IDs{1})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2}),3) = 1;
 FDT.GLMs.TAG(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3}),4) = 1;
 FDT.GLMs.TAG(length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+1:length(FDT.data.IDs{1})+length(FDT.data.IDs{2})+length(FDT.data.IDs{3})+length(FDT.data.IDs{4}),5) = 1;
-FDT.GLMs.TAG_t = [1 0 0 0 0 0; 0 1 0 0 0 0; 0 0 1 0 0 0; 0 1 1 0 0 0];
 
 % Check for missing values and remove from GLM and FDT data
 [idxNaN_row_TAG col] = find(isnan(FDT.GLMs.TAG));
@@ -785,119 +928,86 @@ FDT.GLMs.TAGIS(:,4:6) = FDT.GLMs.TAG(:,3:5);
 % FIT THE TAG MODELS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% % Fit the HMeta-d model for mratio (specified interaction term)
-% FDT.fit.TAG.mratio.TAGI.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.TAG.nR_S1, FDT.data.trials2counts.TAG.nR_S2, FDT.GLMs.TAGI', FDT.settings.fit.mcmc_params);
-FDT.fit.TAG.mratio.TAGI.HDI.interval = [0.007 0.993];
-FDT.fit.TAG.mratio.TAGI.HDI.interval_unc = [0.025 0.975];
-FDT.fit.TAG.mratio.TAGI.HDI.anxF_HDI = calc_HDI((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.987);
-FDT.fit.TAG.mratio.TAGI.HDI.anxF_HDI_unc = calc_HDI((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.95);
-FDT.fit.TAG.mratio.TAGI.HDI.anxF_quantile = quantile((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), FDT.fit.TAG.mratio.TAGI.HDI.interval);
-FDT.fit.TAG.mratio.TAGI.HDI.anxF_quantile_unc = quantile((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), FDT.fit.TAG.mratio.TAGI.HDI.interval_unc);
-FDT.fit.TAG.mratio.TAGI.HDI.anxM_HDI = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), 0.987);
-FDT.fit.TAG.mratio.TAGI.HDI.anxM_HDI_unc = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), 0.95);
-FDT.fit.TAG.mratio.TAGI.HDI.anxM_quantile = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAG.mratio.TAGI.HDI.interval);
-FDT.fit.TAG.mratio.TAGI.HDI.anxM_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAG.mratio.TAGI.HDI.interval_unc);
-FDT.fit.TAG.mratio.TAGI.HDI.gender_HDI = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), 0.987);
-FDT.fit.TAG.mratio.TAGI.HDI.gender_HDI_unc = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), 0.95);
-FDT.fit.TAG.mratio.TAGI.HDI.gender_quantile = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAG.mratio.TAGI.HDI.interval);
-FDT.fit.TAG.mratio.TAGI.HDI.gender_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAG.mratio.TAGI.HDI.interval_unc);
-FDT.fit.TAG.mratio.TAGI.HDI.interaction_HDI = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), 0.987);
-FDT.fit.TAG.mratio.TAGI.HDI.interaction_HDI_unc = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), 0.95);
-FDT.fit.TAG.mratio.TAGI.HDI.interaction_quantile = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.TAG.mratio.TAGI.HDI.interval);
-FDT.fit.TAG.mratio.TAGI.HDI.interaction_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.TAG.mratio.TAGI.HDI.interval_unc);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval = [0.0 0.987];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval_unc = [0.0 0.95];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_inner = calc_HDI((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), 1-0.026);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_outer = calc_HDI((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.9999);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF = [FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_outer(1) FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_inner(2)];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_inner_unc = calc_HDI((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.9);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_outer_unc = calc_HDI((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.9999);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_unc = [FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_outer_unc(1) FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_inner_unc(2)];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_quantile = quantile((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxF_quantile_unc = quantile((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval_unc);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_inner = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), 1-0.026);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_outer = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM = [FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_outer(1) FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_inner(2)];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_inner_unc = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), 0.9);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_outer_unc = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_unc = [FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_outer_unc(1) FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_inner_unc(2)];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_quantile = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.anxM_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval_unc);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_inner = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), 1-0.026);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_outer = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender = [FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_outer(1) FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_inner(2)];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_inner_unc = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), 0.9);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_outer_unc = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_unc = [FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_outer_unc(1) FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_inner_unc(2)];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_quantile = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.gender_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval_unc);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_inner = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), 1-0.026);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_outer = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), 0.9999);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction = [FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_outer(1) FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_inner(2)];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_inner_unc = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), 0.9);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_outer_unc = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), 0.9999);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_unc = [FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_outer_unc(1) FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_inner_unc(2)];
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_quantile = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval);
-FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interaction_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.TAG.mratio.TAGI.HDI.oneTail.interval_unc);
+% Fit the HMeta-d model for mratio (specified interaction term)
+FDT.fit.TAG.mratio.TAGI.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.TAG.nR_S1, FDT.data.trials2counts.TAG.nR_S2, FDT.GLMs.TAGI', FDT.settings.fit.mcmc_params);
+FDT.fit.TAG.mratio.TAGI.HDI.anxF = calc_HDI((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)), 0.95);
+FDT.fit.TAG.mratio.TAGI.HDI.anxM = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.TAG.mratio.TAGI.HDI.gender = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:), 0.95);
+FDT.fit.TAG.mratio.TAGI.HDI.interaction = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:), 0.95);
+FDT.fit.TAG.mratio.TAGI.HDI.intercept = calc_HDI(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
 FDT.fit.TAG.mratio.TAGI.estimates.anxF = FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta1 + FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta3;
 FDT.fit.TAG.mratio.TAGI.estimates.anxM = FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta1;
 FDT.fit.TAG.mratio.TAGI.estimates.gender = FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta2;
 FDT.fit.TAG.mratio.TAGI.estimates.interaction = FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta3;
+% Plot the gender HDIs for checking
+figure;
+set(gcf, 'Position', [200 200 800 300])
+subplot(1,2,1)
+histogram(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_logMratio(:));
+hold on
+xline(FDT.fit.TAG.mratio.TAGI.modelFit.mu_logMratio, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.intercept(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.intercept(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Intercept (Male) HDI');
+set(gca, 'FontSize', 14)
+subplot(1,2,2)
+histogram(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta2(:));
+hold on
+xline(FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta2, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.gender(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.gender(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Gender (F>M) Beta HDI');
+set(gca, 'FontSize', 14)
+% Plot the gender HDIs for checking
+figure;
+set(gcf, 'Position', [200 200 1200 300])
+subplot(1,3,1)
+histogram((FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:) + FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:)));
+hold on
+xline((FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta1 + FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta3), 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.anxF(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.anxF(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Female Trait anxiety Beta HDI');
+set(gca, 'FontSize', 14)
+subplot(1,3,2)
+histogram(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta1(:));
+hold on
+xline(FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta1, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.anxM(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.anxM(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Male Trait anxiety Beta HDI');
+set(gca, 'FontSize', 14)
+subplot(1,3,3)
+histogram(FDT.fit.TAG.mratio.TAGI.modelFit.mcmc.samples.mu_beta3(:));
+hold on
+xline(FDT.fit.TAG.mratio.TAGI.modelFit.mu_beta3, 'color', 'b', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.interaction(1), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(FDT.fit.TAG.mratio.TAGI.HDI.interaction(2), 'linestyle', '--', 'color', 'k', 'linewidth', 1.5);
+xline(0, 'linestyle', ':', 'color', 'r', 'linewidth', 2);
+xlabel('Parameter');
+ylabel('Sample count');
+title('Interaction Beta HDI');
+set(gca, 'FontSize', 14)
 
 % Fit the HMeta-d model for mratio (split interaction term)
-% FDT.fit.TAG.mratio.TAGIS.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.TAG.nR_S1, FDT.data.trials2counts.TAG.nR_S2, FDT.GLMs.TAGIS', FDT.settings.fit.mcmc_params);
-FDT.fit.TAG.mratio.TAGIS.HDI.interval = [0.007 0.993];
-FDT.fit.TAG.mratio.TAGIS.HDI.interval_unc = [0.025 0.975];
-FDT.fit.TAG.mratio.TAGIS.HDI.anxF_HDI = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.987);
-FDT.fit.TAG.mratio.TAGIS.HDI.anxF_HDI_unc = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.95);
-FDT.fit.TAG.mratio.TAGIS.HDI.anxF_quantile = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAG.mratio.TAGIS.HDI.interval);
-FDT.fit.TAG.mratio.TAGIS.HDI.anxF_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAG.mratio.TAGIS.HDI.interval_unc);
-FDT.fit.TAG.mratio.TAGIS.HDI.anxM_HDI = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.987);
-FDT.fit.TAG.mratio.TAGIS.HDI.anxM_HDI_unc = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.95);
-FDT.fit.TAG.mratio.TAGIS.HDI.anxM_quantile = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAG.mratio.TAGIS.HDI.interval);
-FDT.fit.TAG.mratio.TAGIS.HDI.anxM_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAG.mratio.TAGIS.HDI.interval_unc);
-FDT.fit.TAG.mratio.TAGIS.HDI.gender_HDI = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.987);
-FDT.fit.TAG.mratio.TAGIS.HDI.gender_HDI_unc = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.95);
-FDT.fit.TAG.mratio.TAGIS.HDI.gender_quantile = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.TAG.mratio.TAGIS.HDI.interval);
-FDT.fit.TAG.mratio.TAGIS.HDI.gender_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.TAG.mratio.TAGIS.HDI.interval_unc);
-FDT.fit.TAG.mratio.TAGIS.HDI.interaction_HDI = calc_HDI((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.987);
-FDT.fit.TAG.mratio.TAGIS.HDI.interaction_HDI_unc = calc_HDI((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
-FDT.fit.TAG.mratio.TAGIS.HDI.interaction_quantile = quantile((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.TAG.mratio.TAGIS.HDI.interval);
-FDT.fit.TAG.mratio.TAGIS.HDI.interaction_quantile_unc = quantile((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.TAG.mratio.TAGIS.HDI.interval_unc);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval = [0.0 0.987];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval_unc = [0.0 0.95];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_inner = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), 1-0.026);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_outer = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF = [FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_outer(1) FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_inner(2)];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_inner_unc = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.9);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_outer_unc = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.9999);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_unc = [FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_outer_unc(1) FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_inner_unc(2)];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_quantile = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxF_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval_unc);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_inner = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), 1-0.026);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_outer = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM = [FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_outer(1) FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_inner(2)];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_inner_unc = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.9);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_outer_unc = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.9999);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_unc = [FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_outer_unc(1) FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_inner_unc(2)];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_quantile = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.anxM_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval_unc);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_inner = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), 1-0.026);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_outer = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.9999);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender = [FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_outer(1) FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_inner(2)];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_inner_unc = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.9);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_outer_unc = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.9999);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_unc = [FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_outer_unc(1) FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_inner_unc(2)];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_quantile = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.gender_quantile_unc = quantile(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval_unc);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_inner = calc_HDI((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), 1-0.026);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_outer = calc_HDI((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.9999);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction = [FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_outer(1) FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_inner(2)];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_inner_unc = calc_HDI((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.9);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_outer_unc = calc_HDI((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.9999);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_unc = [FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_outer_unc(1) FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_inner_unc(2)];
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_quantile = quantile((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval);
-FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interaction_quantile_unc = quantile((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), FDT.fit.TAG.mratio.TAGIS.HDI.oneTail.interval_unc);
+FDT.fit.TAG.mratio.TAGIS.modelFit = fit_meta_d_mcmc_regression(FDT.data.trials2counts.TAG.nR_S1, FDT.data.trials2counts.TAG.nR_S2, FDT.GLMs.TAGIS', FDT.settings.fit.mcmc_params);
+FDT.fit.TAG.mratio.TAGIS.HDI.anxF = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:), 0.95);
+FDT.fit.TAG.mratio.TAGIS.HDI.anxM = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:), 0.95);
+FDT.fit.TAG.mratio.TAGIS.HDI.gender = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta3(:), 0.95);
+FDT.fit.TAG.mratio.TAGIS.HDI.interaction = calc_HDI((FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta1(:) - FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_beta2(:)), 0.95);
+FDT.fit.TAG.mratio.TAGIS.HDI.intercept = calc_HDI(FDT.fit.TAG.mratio.TAGIS.modelFit.mcmc.samples.mu_logMratio(:), 0.95);
 FDT.fit.TAG.mratio.TAGIS.estimates.anxF = FDT.fit.TAG.mratio.TAGIS.modelFit.mu_beta1;
 FDT.fit.TAG.mratio.TAGIS.estimates.anxM = FDT.fit.TAG.mratio.TAGIS.modelFit.mu_beta2;
 FDT.fit.TAG.mratio.TAGIS.estimates.gender = FDT.fit.TAG.mratio.TAGIS.modelFit.mu_beta3;
@@ -906,26 +1016,38 @@ FDT.fit.TAG.mratio.TAGIS.estimates.interaction = FDT.fit.TAG.mratio.TAGIS.modelF
 % Fit the linear model for sensitivity (filter number)
 filters_TAG = FDT.data.summary.avgFilter;
 filters_TAG(idxNaN_row_TAG) = [];
-FDT.fit.TAG.sensitivity.modelFit = fitlm(FDT.GLMs.TAGI, filters_TAG, 'CategoricalVars', 2);
-FDT.fit.TAG.sensitivity.coefficients = FDT.fit.TAG.sensitivity.modelFit.Coefficients.Estimate(:);
-FDT.fit.TAG.sensitivity.pvalues = FDT.fit.TAG.sensitivity.modelFit.Coefficients.pValue(:);
+FDT.fit.TAG.sensitivity.TAGI.modelFit = fitlm(FDT.GLMs.TAGI, filters_TAG, 'CategoricalVars', 2);
+FDT.fit.TAG.sensitivity.TAGI.coefficients = FDT.fit.TAG.sensitivity.TAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.TAG.sensitivity.TAGI.pvalues = FDT.fit.TAG.sensitivity.TAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.TAG.sensitivity.TAGIS.modelFit = fitlm(FDT.GLMs.TAGIS, filters_TAG, 'CategoricalVars', 3);
+FDT.fit.TAG.sensitivity.TAGIS.coefficients = FDT.fit.TAG.sensitivity.TAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.TAG.sensitivity.TAGIS.pvalues = FDT.fit.TAG.sensitivity.TAGIS.modelFit.Coefficients.pValue(:);
 
 % Fit the linear model for sensibility (confidence)
-confidence_TAG = FDT.data.summary.avgFilter;
+confidence_TAG = FDT.data.summary.avgConfidence;
 confidence_TAG(idxNaN_row_TAG) = [];
-FDT.fit.TAG.sensibility.modelFit = fitlm(FDT.GLMs.TAGI, confidence_TAG, 'CategoricalVars', 2);
-FDT.fit.TAG.sensibility.coefficients = FDT.fit.TAG.sensibility.modelFit.Coefficients.Estimate(:);
-FDT.fit.TAG.sensibility.pvalues = FDT.fit.TAG.sensibility.modelFit.Coefficients.pValue(:);
+FDT.fit.TAG.sensibility.TAGI.modelFit = fitlm(FDT.GLMs.TAGI, confidence_TAG, 'CategoricalVars', 2);
+FDT.fit.TAG.sensibility.TAGI.coefficients = FDT.fit.TAG.sensibility.TAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.TAG.sensibility.TAGI.pvalues = FDT.fit.TAG.sensibility.TAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.TAG.sensibility.TAGIS.modelFit = fitlm(FDT.GLMs.TAGIS, confidence_TAG, 'CategoricalVars', 3);
+FDT.fit.TAG.sensibility.TAGIS.coefficients = FDT.fit.TAG.sensibility.TAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.TAG.sensibility.TAGIS.pvalues = FDT.fit.TAG.sensibility.TAGIS.modelFit.Coefficients.pValue(:);
 
 % Fit the linear model for decision bias
-FDT.fit.TAG.bias.modelFit = fitlm(FDT.GLMs.TAGI, FDT.fit.TAG.mratio.TAGIS.modelFit.c1, 'CategoricalVars', 2);
-FDT.fit.TAG.bias.coefficients = FDT.fit.TAG.bias.modelFit.Coefficients.Estimate(:);
-FDT.fit.TAG.bias.pvalues = FDT.fit.TAG.bias.modelFit.Coefficients.pValue(:);
+FDT.fit.TAG.bias.TAGI.modelFit = fitlm(FDT.GLMs.TAGI, FDT.fit.TAG.mratio.TAGI.modelFit.c1, 'CategoricalVars', 2);
+FDT.fit.TAG.bias.TAGI.coefficients = FDT.fit.TAG.bias.TAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.TAG.bias.TAGI.pvalues = FDT.fit.TAG.bias.TAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.TAG.bias.TAGIS.modelFit = fitlm(FDT.GLMs.TAGIS, FDT.fit.TAG.mratio.TAGIS.modelFit.c1, 'CategoricalVars', 3);
+FDT.fit.TAG.bias.TAGIS.coefficients = FDT.fit.TAG.bias.TAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.TAG.bias.TAGIS.pvalues = FDT.fit.TAG.bias.TAGIS.modelFit.Coefficients.pValue(:);
 
 % Fit the linear model for d' (sanity check)
-FDT.fit.TAG.dPrime.modelFit = fitlm(FDT.GLMs.TAGI, FDT.fit.TAG.mratio.TAGIS.modelFit.d1, 'CategoricalVars', 2);
-FDT.fit.TAG.dPrime.coefficients = FDT.fit.TAG.dPrime.modelFit.Coefficients.Estimate(:);
-FDT.fit.TAG.dPrime.pvalues = FDT.fit.TAG.dPrime.modelFit.Coefficients.pValue(:);
+FDT.fit.TAG.dPrime.TAGI.modelFit = fitlm(FDT.GLMs.TAGI, FDT.fit.TAG.mratio.TAGI.modelFit.d1, 'CategoricalVars', 2);
+FDT.fit.TAG.dPrime.TAGI.coefficients = FDT.fit.TAG.dPrime.TAGI.modelFit.Coefficients.Estimate(:);
+FDT.fit.TAG.dPrime.TAGI.pvalues = FDT.fit.TAG.dPrime.TAGI.modelFit.Coefficients.pValue(:);
+FDT.fit.TAG.dPrime.TAGIS.modelFit = fitlm(FDT.GLMs.TAGIS, FDT.fit.TAG.mratio.TAGI.modelFit.d1, 'CategoricalVars', 3);
+FDT.fit.TAG.dPrime.TAGIS.coefficients = FDT.fit.TAG.dPrime.TAGIS.modelFit.Coefficients.Estimate(:);
+FDT.fit.TAG.dPrime.TAGIS.pvalues = FDT.fit.TAG.dPrime.TAGIS.modelFit.Coefficients.pValue(:);
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -979,8 +1101,6 @@ FDT.values.mratio.se = std(exp(FDT.fit.SA.mratio.modelFit.mcmc.samples.mu_logMra
 % % Remove samples from model fits to save space
 % FDT.fit.SA.mratio.modelFit.mcmc.samples = [];
 % FDT.fit.TA.mratio.modelFit.mcmc.samples = [];
-% FDT.fit.Dep.mratio.modelFit.mcmc.samples = [];
-% FDT.fit.SAD.mratio.modelFit.mcmc.samples = [];
 % FDT.fit.TAD.mratio.modelFit.mcmc.samples = [];
 % FDT.fit.SAG.mratio.SAGI.modelFit.mcmc.samples = [];
 % FDT.fit.SAG.mratio.SAGIS.modelFit.mcmc.samples = [];

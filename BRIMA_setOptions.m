@@ -68,9 +68,15 @@ options.variables.summarySheet = {'AGE', 'GENDER', 'ANXIETY-S', 'ANXIETY-T', 'DE
 options.names.output = fullfile(options.paths.analysis, 'BRIMA-output.mat');
 
 % Specify figure outputs
-options.names.figure1output = fullfile(options.paths.figures, 'BRIMA-figure1');
-options.names.figure2output = fullfile(options.paths.figures, 'BRIMA-figure2');
-options.names.figure3output = fullfile(options.paths.figures, 'BRIMA-figure3');
+options.names.figure.SA1 = fullfile(options.paths.figures, 'BRIMA-figure-SA1');
+options.names.figure.SA2 = fullfile(options.paths.figures, 'BRIMA-figure-SA2');
+options.names.figure.SA3 = fullfile(options.paths.figures, 'BRIMA-figure-SA3');
+options.names.figure.TA1 = fullfile(options.paths.figures, 'BRIMA-figure-TA1');
+options.names.figure.TA2 = fullfile(options.paths.figures, 'BRIMA-figure-TA2');
+options.names.figure.TA3 = fullfile(options.paths.figures, 'BRIMA-figure-TA3');
+options.names.figure.D1 = fullfile(options.paths.figures, 'BRIMA-figure-D1');
+options.names.figure.D2 = fullfile(options.paths.figures, 'BRIMA-figure-D2');
+options.names.figure.D3 = fullfile(options.paths.figures, 'BRIMA-figure-D3');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
