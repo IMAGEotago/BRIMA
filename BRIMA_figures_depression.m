@@ -203,7 +203,7 @@ figure
     str = {['M Beta = ', sprintf('%.2f', (FDT.fit.DG.sensibility.DGI.coefficients(2))), '*']};
     text(3, 3.2, str, 'FontSize', 12, 'Color', 'r');
     title('METACOGNITIVE BIAS', 'fontsize', 18);
-    lgd = legend('Men','Women');
+    lgd = legend('Women','Men');
     lgd.Location = 'northeast';
     % MRatio: gender
     ax4 = subplot(4,1,4);
